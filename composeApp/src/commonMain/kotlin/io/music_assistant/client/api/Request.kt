@@ -877,11 +877,34 @@ data class Request @OptIn(ExperimentalUuidApi::class) constructor(
     data object Auth {
         fun providers() = Request(command = APICommands.AUTH_PROVIDERS)
 
-        fun authorizationUrl(providerId: String, returnUrl: String? = null) = Request(
+        /**
+         * @param codeChallenge PKCE S256 challenge; when set, the browser returns to the app's
+         *   Remote Access callback and the sign-in finishes with [exchange].
+         */
+        fun authorizationUrl(
+            providerId: String,
+            returnUrl: String? = null,
+            codeChallenge: String? = null,
+        ) = Request(
             command = APICommands.AUTH_AUTHORIZATION_URL,
             args = buildJsonObject {
                 put("provider_id", JsonPrimitive(providerId))
                 returnUrl?.let { put("return_url", JsonPrimitive(it)) }
+                codeChallenge?.let {
+                    put("code_challenge", JsonPrimitive(it))
+                    put("code_challenge_method", JsonPrimitive("S256"))
+                    put("redirect_target", JsonPrimitive("app"))
+                }
+            },
+        )
+
+        fun exchange(state: String, code: String, codeVerifier: String, deviceName: String) = Request(
+            command = APICommands.AUTH_EXCHANGE,
+            args = buildJsonObject {
+                put("state", JsonPrimitive(state))
+                put("code", JsonPrimitive(code))
+                put("code_verifier", JsonPrimitive(codeVerifier))
+                put("device_name", JsonPrimitive(deviceName))
             },
         )
 

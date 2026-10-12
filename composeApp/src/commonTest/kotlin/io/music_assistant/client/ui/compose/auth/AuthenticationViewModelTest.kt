@@ -356,7 +356,7 @@ class AuthenticationViewModelTest {
         val vm = viewModel()
         vm.login(haProvider)
 
-        assertEquals(listOf("homeassistant" to "musicassistant://auth/callback"), auth.oauthRequests)
+        assertEquals(listOf(haProvider), auth.oauthRequests)
         assertEquals(listOf("https://oauth.example/"), auth.startedOAuthUrls)
         assertTrue(auth.loginCalls.isEmpty(), "OAuth flow must not also try credential login")
     }
@@ -450,10 +450,10 @@ private class FakeAuthCoordinator : AuthCoordinator {
     }
 
     var oauthUrl: Result<String> = Result.success("https://default.example/")
-    val oauthRequests = mutableListOf<Pair<String, String>>()
+    val oauthRequests = mutableListOf<AuthProvider>()
 
-    override suspend fun getOAuthUrl(providerId: String, returnUrl: String): Result<String> {
-        oauthRequests += providerId to returnUrl
+    override suspend fun getOAuthUrl(provider: AuthProvider): Result<String> {
+        oauthRequests += provider
         return oauthUrl
     }
 

@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import io.music_assistant.client.auth.AuthCoordinator
-import io.music_assistant.client.auth.OAuthCallback
 import io.music_assistant.client.data.model.server.AuthProvider
 import io.music_assistant.client.utils.AuthProcessState
 import io.music_assistant.client.utils.DataConnectionState
@@ -56,7 +55,7 @@ class AuthenticationViewModel(
         viewModelScope.launch {
             when (provider.type) {
                 "builtin" -> auth.loginWithCredentials(provider.id, username.value, password.value)
-                else -> auth.getOAuthUrl(provider.id, OAuthCallback.RETURN_URL)
+                else -> auth.getOAuthUrl(provider)
                     .onSuccess { url -> auth.startOAuthFlow(url) }
             }
         }

@@ -4,13 +4,16 @@ import co.touchlab.kermit.Logger
 import io.music_assistant.client.api.Request
 import io.music_assistant.client.api.ServiceClient
 import io.music_assistant.client.data.model.server.AuthProvider
+import io.music_assistant.client.data.model.server.LoginResponse
 import io.music_assistant.client.data.model.server.OauthUrl
 import io.music_assistant.client.data.model.server.User
+import io.music_assistant.client.data.model.server.supportsRemoteAppSignIn
 import io.music_assistant.client.settings.ConnectionHistoryEntry
 import io.music_assistant.client.settings.SettingsRepository
 import io.music_assistant.client.utils.AuthProcessState
 import io.music_assistant.client.utils.DataConnectionState
 import io.music_assistant.client.utils.SessionState
+import io.music_assistant.client.utils.currentTimeMillis
 import io.music_assistant.client.utils.mainDispatcher
 import io.music_assistant.client.utils.resultAs
 import kotlinx.coroutines.CancellationException
@@ -50,22 +53,22 @@ class AuthenticationManager(
     private var awaitingOAuthCallback = false
 
     /**
-     * Token from an OAuth deep link, held until an auth attempt consumes it.
+     * Result of an OAuth deep link, held until an auth attempt consumes it.
      *
      * The deep link foregrounds the app, and foregrounding tears the transport down for
      * a reconnect. Sending the token straight away would write it into a socket that is
      * already dying, so the server never sees it and the user gets a connectivity error
-     * on a login that actually succeeded. Instead we buffer the token and let the
+     * on a login that actually succeeded. Instead we buffer the result and let the
      * `AwaitingAuth(NotStarted)` branch below spend it once the transport settles — the
-     * same state-driven path the saved-token auto-login already uses. The token survives
+     * same state-driven path the saved-token auto-login already uses. The result survives
      * an aborted attempt, so a reconnect mid-round-trip retries instead of dead-ending.
      */
-    private var pendingOAuthToken: String? = null
+    private var pendingCallback: PendingCallback? = null
 
-    /** Guards against the two entry points spending [pendingOAuthToken] twice. */
-    private var authorizingOAuthToken = false
+    /** Guards against the two entry points spending [pendingCallback] twice. */
+    private var spendingPendingCallback = false
 
-    /** Fails the flow if [pendingOAuthToken] is never spent. */
+    /** Fails the flow if [pendingCallback] is never spent. */
     private var pendingOAuthWatchdog: Job? = null
 
     // Flag to prevent auto-login during intentional logout - using StateFlow for proper synchronization
@@ -90,13 +93,14 @@ class AuthenticationManager(
                         is DataConnectionState.AwaitingAuth -> {
                             when (dataConnectionState.authProcessState) {
                                 AuthProcessState.NotStarted -> {
-                                    // A pending OAuth token outranks the saved one: the user
-                                    // just completed an interactive login, so no server-id
-                                    // check applies — the fresh token defines the server.
-                                    val pending = pendingOAuthToken
+                                    // A pending OAuth callback outranks the saved token: the
+                                    // user just completed an interactive login, so no server-id
+                                    // check applies — the fresh token defines the server. An
+                                    // exchange checks its Remote ID itself.
+                                    val pending = pendingCallback
                                     if (pending != null) {
-                                        log.i { "AwaitingAuth(NotStarted) — spending pending OAuth token" }
-                                        authorizeWithOAuthToken(pending)
+                                        log.i { "AwaitingAuth(NotStarted) — spending pending OAuth callback" }
+                                        spendPendingCallback(pending)
                                     } else if (isLoggingOut) {
                                         log.i { "AwaitingAuth(NotStarted) — skipping auto-login (logging out)" }
                                     } else {
@@ -120,7 +124,7 @@ class AuthenticationManager(
                                 }
 
                                 is AuthProcessState.Failed -> {
-                                    clearPendingOAuthToken()
+                                    clearPendingCallback()
                                     settings.setTokenForServer(
                                         dataConnectionState.serverInfo.serverId,
                                         null,
@@ -136,7 +140,7 @@ class AuthenticationManager(
                                 }
 
                                 AuthProcessState.LoggedOut -> {
-                                    clearPendingOAuthToken()
+                                    clearPendingCallback()
                                     settings.setTokenForServer(
                                         dataConnectionState.serverInfo.serverId,
                                         null,
@@ -151,7 +155,7 @@ class AuthenticationManager(
 
                         is DataConnectionState.Authenticated -> {
                             state.user?.let { user ->
-                                clearPendingOAuthToken()
+                                clearPendingCallback()
                                 log.i { "Authenticated" }
                                 _authState.value = AuthState.Authenticated(user)
 
@@ -202,7 +206,11 @@ class AuthenticationManager(
                 return Result.failure(Exception(error))
             }
 
-            response.resultAs<List<AuthProvider>>()?.let { providers ->
+            response.resultAs<List<AuthProvider>>()?.let { all ->
+                // over Remote Access a redirect sign-in only works when it can return to the app
+                val providers = all.filter {
+                    !it.requiresRedirect || remoteAppSignInSession() == null || it.supportsRemoteApp
+                }
                 _authState.value = AuthState.ProvidersLoaded(providers)
                 Result.success(providers)
             } ?: run {
@@ -243,23 +251,38 @@ class AuthenticationManager(
         }
     }
 
-    override suspend fun getOAuthUrl(providerId: String, returnUrl: String): Result<String> {
+    override suspend fun getOAuthUrl(provider: AuthProvider): Result<String> {
         return try {
+            // Remote ID and PKCE verifier, when the browser returns to the app over Remote Access
+            val remoteSignIn = remoteAppSignInSession()
+                ?.takeIf { provider.supportsRemoteApp }
+                ?.let { it.remoteId.rawId to Pkce.createVerifier() }
             val response = serviceClient.sendRequest(
-                Request.Auth.authorizationUrl(providerId, returnUrl),
+                Request.Auth.authorizationUrl(
+                    provider.id,
+                    OAuthCallback.RETURN_URL,
+                    codeChallenge = remoteSignIn?.let { Pkce.challenge(it.second) },
+                ),
             )
 
-            if (response.isFailure) {
-                return Result.failure(Exception("Failed to get OAuth URL"))
-            }
+            if (response.isFailure) return oauthUrlFailure("Failed to get OAuth URL")
+            val oauthUrl = response.resultAs<OauthUrl>()
+                ?: return oauthUrlFailure("Failed to parse OAuth URL")
+            val url = oauthUrl.url ?: return oauthUrlFailure(oauthUrl.error ?: "Failed to get OAuth URL")
 
-            response.resultAs<OauthUrl>()?.let { oauthUrl ->
-                Result.success(oauthUrl.url)
-            } ?: Result.failure(Exception("Failed to parse OAuth URL"))
+            remoteSignIn?.let { (remoteId, verifier) ->
+                // the server marks a sign-in that returns to the native app with "n."
+                val state = oauthUrl.state?.takeIf { it.startsWith("n.") }
+                    ?: return oauthUrlFailure("Unexpected sign-in response from the server")
+                settings.setPendingSignIn(
+                    PendingSignIn(state, verifier, remoteId, currentTimeMillis() + PendingSignIn.LIFETIME_MS),
+                )
+            }
+            Result.success(url)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Result.failure(e)
+            oauthUrlFailure(e.message ?: "Failed to get OAuth URL")
         }
     }
 
@@ -314,33 +337,42 @@ class AuthenticationManager(
     fun handleOAuthCallbackUrl(urlString: String): Boolean =
         when (val result = OAuthCallback.parse(urlString)) {
             is OAuthCallbackResult.Code -> {
-                handleOAuthCallback(result.token)
+                when (val state = result.state) {
+                    null -> handleOAuthCallback(result.code)
+                    else -> handleSignInCallback(state, result.code)
+                }
                 true
             }
 
             is OAuthCallbackResult.Failed -> {
-                cancelOAuthFlow(result.reason)
+                // a failure of a sign-in this app did not start must not end the one it did
+                if (result.state == null || takePendingSignIn(result.state) != null) {
+                    cancelOAuthFlow(result.reason)
+                }
                 true
             }
 
             OAuthCallbackResult.NotOAuth -> false
         }
 
-    fun handleOAuthCallback(token: String) {
+    /** Sign in with the access [token] from a callback of the server's own redirect page. */
+    fun handleOAuthCallback(token: String) = acceptCallback(PendingCallback.Token(token))
+
+    private fun acceptCallback(callback: PendingCallback) {
         log.d { "OAuth callback received" }
         // Clear synchronously (before the launch) so the foreground collector,
         // which fires after this on the success path, sees no pending flow.
         awaitingOAuthCallback = false
         _isLoggingOut.value = false
-        pendingOAuthToken = token
+        pendingCallback = callback
         _authState.value = AuthState.Loading
 
         pendingOAuthWatchdog?.cancel()
         pendingOAuthWatchdog = scope.launch {
             delay(OAUTH_TOKEN_WAIT_MS)
-            if (pendingOAuthToken == null) return@launch
-            pendingOAuthToken = null
-            log.e { "OAuth: token unspent after ${OAUTH_TOKEN_WAIT_MS}ms — cannot authorize" }
+            if (pendingCallback == null) return@launch
+            pendingCallback = null
+            log.e { "OAuth: callback unspent after ${OAUTH_TOKEN_WAIT_MS}ms — cannot authorize" }
             _authState.value = AuthState.Error("Connection timeout. Please try again.")
         }
 
@@ -353,35 +385,38 @@ class AuthenticationManager(
             val awaitingAuth = (serviceClient.sessionState.value as? SessionState.Connected)
                 ?.dataConnectionState as? DataConnectionState.AwaitingAuth
             if (awaitingAuth != null && awaitingAuth.authProcessState != AuthProcessState.InProgress) {
-                authorizeWithOAuthToken(token)
+                spendPendingCallback(callback)
             }
         }
     }
 
     /**
-     * Spend a deep-link OAuth token. The token is NOT cleared here: an attempt that the
+     * Spend a deep-link OAuth callback. The callback is NOT cleared here: an attempt that the
      * transport aborts mid-round-trip leaves the session state untouched, so the next
      * `AwaitingAuth(NotStarted)` must be able to retry with it. Only a settled outcome
      * (Authenticated, Failed, LoggedOut) or the watchdog clears it.
      */
-    private suspend fun authorizeWithOAuthToken(token: String) {
-        if (authorizingOAuthToken) return
-        authorizingOAuthToken = true
+    private suspend fun spendPendingCallback(callback: PendingCallback) {
+        if (spendingPendingCallback) return
+        spendingPendingCallback = true
         try {
-            serviceClient.authorize(token, isAutoLogin = false)
+            when (callback) {
+                is PendingCallback.Token -> serviceClient.authorize(callback.token, isAutoLogin = false)
+                is PendingCallback.Exchange -> exchangeAndAuthorize(callback)
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             log.e(e) { "Authorization failed" }
-            clearPendingOAuthToken()
+            clearPendingCallback()
             _authState.value = AuthState.Error(e.message ?: "Authorization failed")
         } finally {
-            authorizingOAuthToken = false
+            spendingPendingCallback = false
         }
     }
 
-    private fun clearPendingOAuthToken() {
-        pendingOAuthToken = null
+    private fun clearPendingCallback() {
+        pendingCallback = null
         pendingOAuthWatchdog?.cancel()
         pendingOAuthWatchdog = null
     }
@@ -400,7 +435,7 @@ class AuthenticationManager(
         return try {
             // Set flag FIRST, before any async operations
             _isLoggingOut.value = true
-            clearPendingOAuthToken()
+            clearPendingCallback()
             val currentState = serviceClient.sessionState.value
             (currentState as? SessionState.Connected)?.serverInfo?.serverId?.let {
                 settings.setTokenForServer(it, null)
@@ -418,6 +453,76 @@ class AuthenticationManager(
 
     fun close() {
         scope.cancel()
+    }
+
+    private fun handleSignInCallback(state: String, code: String) {
+        val signIn = takePendingSignIn(state) ?: return
+        if (signIn.isExpired(currentTimeMillis())) {
+            awaitingOAuthCallback = false
+            _authState.value = AuthState.Error("The sign-in has expired. Please try again.")
+            return
+        }
+        acceptCallback(PendingCallback.Exchange(signIn, code))
+    }
+
+    /**
+     * Remove and return the pending sign-in of [state].
+     *
+     * Returns null and keeps the pending sign-in when this app did not start [state], so a
+     * crafted link can neither use nor end it.
+     */
+    private fun takePendingSignIn(state: String): PendingSignIn? {
+        val signIn = settings.getPendingSignIn()?.takeIf { it.state == state } ?: run {
+            log.w { "Dropping a sign-in callback this app did not start" }
+            return null
+        }
+        settings.setPendingSignIn(null)
+        return signIn
+    }
+
+    /** Trade the code of [callback] for an access token with `auth/exchange`, then authorize with it. */
+    private suspend fun exchangeAndAuthorize(callback: PendingCallback.Exchange) {
+        val signIn = callback.signIn
+        // the code and verifier only ever go to the server the sign-in was started on
+        val session = serviceClient.sessionState.value as? SessionState.Connected.WebRTC
+        if (session?.remoteId?.rawId != signIn.remoteId) {
+            log.i { "Sign-in callback waits for the server it was started on" }
+            return
+        }
+        val response = serviceClient.sendRequest(
+            Request.Auth.exchange(signIn.state, callback.code, signIn.codeVerifier, settings.deviceName.value),
+        )
+        // the connection dropped mid-request; the next AwaitingAuth(NotStarted) retries
+        if (response.isFailure) return
+        val login = response.resultAs<LoginResponse>()
+        val token = login?.token?.takeIf { login.success && it.isNotBlank() } ?: run {
+            log.w { "auth/exchange failed: ${login?.error}" }
+            clearPendingCallback()
+            _authState.value = AuthState.Error(login?.error ?: "Sign-in failed")
+            return
+        }
+        // the server accepts a code only once, so a retry from here on must reuse the token
+        pendingCallback = PendingCallback.Token(token)
+        serviceClient.authorize(token, isAutoLogin = false)
+    }
+
+    /** The Remote Access session when its server supports PKCE sign-in over it, else null. */
+    private fun remoteAppSignInSession(): SessionState.Connected.WebRTC? =
+        (serviceClient.sessionState.value as? SessionState.Connected.WebRTC)
+            ?.takeIf { supportsRemoteAppSignIn(it.serverInfo?.schemaVersion) }
+
+    private fun oauthUrlFailure(message: String): Result<String> {
+        _authState.value = AuthState.Error(message)
+        return Result.failure(Exception(message))
+    }
+
+    /** What an OAuth deep link delivered, waiting for a connection that can spend it. */
+    private sealed interface PendingCallback {
+        /** An access token from the server's own redirect page. */
+        data class Token(val token: String) : PendingCallback
+
+        /** An authorization code for [signIn], to trade for a token with `auth/exchange`. */
+        data class Exchange(val signIn: PendingSignIn, val code: String) : PendingCallback
     }
 
     private companion object {

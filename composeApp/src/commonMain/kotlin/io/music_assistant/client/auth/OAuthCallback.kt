@@ -5,11 +5,17 @@ import io.ktor.http.Url
 
 /** Outcome of reading an incoming URL as an OAuth callback. */
 sealed interface OAuthCallbackResult {
-    /** The provider returned an authorization code. */
-    data class Code(val token: String) : OAuthCallbackResult
+    /**
+     * The provider returned a code.
+     *
+     * Without [state] the code is the server's access token. With [state] it is an
+     * authorization code for the PKCE sign-in of that state, which `auth/exchange` turns
+     * into a token.
+     */
+    data class Code(val code: String, val state: String? = null) : OAuthCallbackResult
 
     /** The callback shape matched but carried a failure, or no code at all. */
-    data class Failed(val reason: String) : OAuthCallbackResult
+    data class Failed(val reason: String, val state: String? = null) : OAuthCallbackResult
 
     /** Not an OAuth callback — some other deep link, or not a URL at all. */
     data object NotOAuth : OAuthCallbackResult
@@ -52,12 +58,13 @@ object OAuthCallback {
             url.encodedPath.trimEnd('/') == PATH
         if (!isCallback) return OAuthCallbackResult.NotOAuth
 
+        val state = url.parameters["state"]?.takeIf { it.isNotEmpty() }
         url.parameters["code"]?.takeIf { it.isNotEmpty() }
-            ?.let { return OAuthCallbackResult.Code(it) }
+            ?.let { return OAuthCallbackResult.Code(it, state) }
 
         val error = url.parameters["error_description"]?.takeIf { it.isNotEmpty() }
             ?: url.parameters["error"]?.takeIf { it.isNotEmpty() }
-        return OAuthCallbackResult.Failed(error ?: "No token in OAuth callback")
+        return OAuthCallbackResult.Failed(error ?: "No token in OAuth callback", state)
     }
 }
 

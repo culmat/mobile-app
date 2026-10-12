@@ -1031,6 +1031,7 @@ class KtorServiceClient(
         APICommands.AUTH_PROVIDERS,
         APICommands.AUTH_AUTHORIZATION_URL,
         APICommands.AUTH_LOGIN,
+        APICommands.AUTH_EXCHANGE,
         APICommands.AUTH_LOGOUT,
         APICommands.AUTH,
     )

@@ -15,7 +15,13 @@ interface AuthCoordinator {
         password: String,
     ): Result<Unit>
 
-    suspend fun getOAuthUrl(providerId: String, returnUrl: String): Result<String>
+    /**
+     * Get the authorization URL of a redirect [provider], to open with [startOAuthFlow].
+     *
+     * Over Remote Access to a server that supports it, this starts a PKCE sign-in that
+     * returns to the app.
+     */
+    suspend fun getOAuthUrl(provider: AuthProvider): Result<String>
 
     fun startOAuthFlow(oauthUrl: String): Result<Unit>
 

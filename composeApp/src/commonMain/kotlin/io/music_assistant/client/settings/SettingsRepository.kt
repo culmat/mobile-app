@@ -2,6 +2,7 @@ package io.music_assistant.client.settings
 
 import com.russhwolf.settings.Settings
 import io.music_assistant.client.api.ConnectionInfo
+import io.music_assistant.client.auth.PendingSignIn
 import io.music_assistant.client.data.model.client.ClickContext
 import io.music_assistant.client.data.model.client.GenreEmptyFilter
 import io.music_assistant.client.data.model.client.ItemKind
@@ -145,6 +146,21 @@ class SettingsRepository(
         } else {
             secrets.putString("$TOKEN_PREFIX$serverId", token)
         }
+    }
+
+    /** The unfinished Remote Access sign-in, or null when there is none or it cannot be read. */
+    fun getPendingSignIn(): PendingSignIn? =
+        secrets.getStringOrNull(PENDING_SIGN_IN_KEY)?.let {
+            try { myJson.decodeFromString<PendingSignIn>(it) } catch (_: Exception) { null }
+        }
+
+    /**
+     * Save the unfinished Remote Access sign-in, replacing any earlier one.
+     * @param signIn The sign-in, or null to delete it.
+     */
+    fun setPendingSignIn(signIn: PendingSignIn?) {
+        signIn?.let { secrets.putString(PENDING_SIGN_IN_KEY, myJson.encodeToString(it)) }
+            ?: secrets.remove(PENDING_SIGN_IN_KEY)
     }
 
     /**
@@ -822,6 +838,7 @@ class SettingsRepository(
         private const val TOKEN_PREFIX = "token_"
         private const val SERVER_ID_PREFIX = "id_"
         private const val CLIENT_CERTIFICATE_ALIAS_KEY = "client_certificate_alias"
+        private const val PENDING_SIGN_IN_KEY = "pending_sign_in"
         private val SECRET_STRING_KEYS = listOf(
             "host",
             "webrtc_remote_id",

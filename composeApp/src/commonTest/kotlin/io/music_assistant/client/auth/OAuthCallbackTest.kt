@@ -2,6 +2,7 @@ package io.music_assistant.client.auth
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -25,15 +26,22 @@ class OAuthCallbackTest {
         val result = OAuthCallback.parse("musicassistant://auth/callback?code=abc123")
 
         assertTrue(result is OAuthCallbackResult.Code)
-        assertEquals("abc123", result.token)
+        assertEquals("abc123", result.code)
+        assertNull(result.state, "Without a state the code is the server's access token")
     }
 
     @Test
-    fun `extra query parameters do not hide the code`() {
-        val result = OAuthCallback.parse("musicassistant://auth/callback?state=xyz&code=abc123")
+    fun `a callback carrying a state yields the code with its state`() {
+        val result = OAuthCallback.parse("musicassistant://auth/callback?state=n.xyz&code=abc123")
 
-        assertTrue(result is OAuthCallbackResult.Code)
-        assertEquals("abc123", result.token)
+        assertEquals(OAuthCallbackResult.Code("abc123", "n.xyz"), result)
+    }
+
+    @Test
+    fun `an error callback keeps its state`() {
+        val result = OAuthCallback.parse("musicassistant://auth/callback?error=access_denied&state=n.xyz")
+
+        assertEquals(OAuthCallbackResult.Failed("access_denied", "n.xyz"), result)
     }
 
     @Test

@@ -107,7 +107,8 @@ class MainActivity : ComponentActivity() {
      */
     private fun handleIncomingUri(intent: Intent?) {
         val data = intent?.data ?: return
-        Logger.withTag("MainActivity").d("Deep link received: $data")
+        // without the query: an OAuth callback carries a token or an authorization code there
+        Logger.withTag("MainActivity").d("Deep link received: ${data.scheme}://${data.host}${data.path}")
 
         // musicassistant://auth/callback?code=...
         if (authManager.handleOAuthCallbackUrl(data.toString())) return
