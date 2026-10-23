@@ -1,5 +1,6 @@
 package io.music_assistant.client.ui.compose.library
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,7 +13,9 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -21,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import io.music_assistant.client.data.model.client.items.Album
 import io.music_assistant.client.data.model.client.items.AppMediaItem
@@ -56,6 +60,7 @@ import io.music_assistant.client.ui.compose.common.items.RadioWithMenu
 import io.music_assistant.client.ui.compose.common.items.TrackWithMenu
 import io.music_assistant.client.ui.compose.common.items.lazyListOccurrenceKeys
 import io.music_assistant.client.ui.compose.grid.gridItemMinSize
+import io.music_assistant.client.utils.conditional
 
 @Composable
 fun AdaptiveMediaGrid(
@@ -73,9 +78,12 @@ fun AdaptiveMediaGrid(
     progressActions: ProgressActions? = null,
     contentPadding: PaddingValues,
     albumSubtitle: AlbumSubtitle = AlbumSubtitle.ARTISTS,
+    // Cells to tint, the item playing now, say.
+    isHighlighted: (AppMediaItem) -> Boolean = { false },
 ) {
     val isRow = viewMode == ViewMode.LIST
     val itemKeys = remember(items) { items.lazyListOccurrenceKeys() }
+    val highlightColor = MaterialTheme.colorScheme.secondaryContainer
 
     // derivedStateOf tracks only State reads; plain parameters would stay at their first values.
     val currentHasMore by rememberUpdatedState(hasMore)
@@ -116,123 +124,129 @@ fun AdaptiveMediaGrid(
                 null
             },
         ) { _, item ->
-            when (item) {
-                is Artist -> ArtistWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    onNavigateClick = onNavigateClick,
-                    onPlayOption = onPlayClick,
-                    libraryActions = libraryActions,
-                    providerIconFetcher = null,
-                )
+            Box(
+                modifier = Modifier.conditional(isHighlighted(item)) {
+                    clip(RoundedCornerShape(8.dp)).background(highlightColor)
+                },
+            ) {
+                when (item) {
+                    is Artist -> ArtistWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        onNavigateClick = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = null,
+                    )
 
-                is Album -> AlbumWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    onNavigateClick = onNavigateClick,
-                    navigateToItem = onNavigateClick,
-                    onPlayOption = onPlayClick,
-                    playlistActions = playlistActions,
-                    libraryActions = libraryActions,
-                    providerIconFetcher = null,
-                    subtitle = albumSubtitle,
-                )
+                    is Album -> AlbumWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        onNavigateClick = onNavigateClick,
+                        navigateToItem = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        playlistActions = playlistActions,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = null,
+                        subtitle = albumSubtitle,
+                    )
 
-                is Playlist -> PlaylistWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    onNavigateClick = onNavigateClick,
-                    onPlayOption = onPlayClick,
-                    libraryActions = libraryActions,
-                    providerIconFetcher = null,
-                )
+                    is Playlist -> PlaylistWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        onNavigateClick = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = null,
+                    )
 
-                is Podcast -> PodcastWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    onNavigateClick = onNavigateClick,
-                    onPlayOption = onPlayClick,
-                    libraryActions = libraryActions,
-                    providerIconFetcher = null,
-                )
+                    is Podcast -> PodcastWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        onNavigateClick = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = null,
+                    )
 
-                is Track -> TrackWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    navigateToItem = onNavigateClick,
-                    onPlayOption = onPlayClick,
-                    playlistActions = playlistActions,
-                    libraryActions = libraryActions,
-                    providerIconFetcher = null,
-                )
+                    is Track -> TrackWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        navigateToItem = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        playlistActions = playlistActions,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = null,
+                    )
 
-                is PodcastEpisode -> PodcastEpisodeWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    onPlayOption = onPlayClick,
-                    playlistActions = playlistActions,
-                    libraryActions = libraryActions,
-                    progressActions = progressActions,
-                    providerIconFetcher = null,
-                )
+                    is PodcastEpisode -> PodcastEpisodeWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        onPlayOption = onPlayClick,
+                        playlistActions = playlistActions,
+                        libraryActions = libraryActions,
+                        progressActions = progressActions,
+                        providerIconFetcher = null,
+                    )
 
-                is Audiobook -> AudiobookWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    onNavigateClick = onNavigateClick,
-                    onPlayOption = onPlayClick,
-                    playlistActions = playlistActions,
-                    libraryActions = libraryActions,
-                    progressActions = progressActions,
-                    providerIconFetcher = null,
-                )
+                    is Audiobook -> AudiobookWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        onNavigateClick = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        playlistActions = playlistActions,
+                        libraryActions = libraryActions,
+                        progressActions = progressActions,
+                        providerIconFetcher = null,
+                    )
 
-                is Genre -> GenreWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    onNavigateClick = onNavigateClick,
-                    onPlayOption = onPlayClick,
-                    libraryActions = libraryActions,
-                    providerIconFetcher = null,
-                )
+                    is Genre -> GenreWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        onNavigateClick = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = null,
+                    )
 
-                is RadioStation -> RadioWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    onPlayOption = onPlayClick,
-                    playlistActions = playlistActions,
-                    libraryActions = libraryActions,
-                    providerIconFetcher = null,
-                )
+                    is RadioStation -> RadioWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        onPlayOption = onPlayClick,
+                        playlistActions = playlistActions,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = null,
+                    )
 
-                is MediaCollection -> MediaCollectionWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    onNavigateClick = onNavigateClick,
-                    onPlayOption = onPlayClick,
-                    libraryActions = libraryActions,
-                )
+                    is MediaCollection -> MediaCollectionWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        onNavigateClick = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        libraryActions = libraryActions,
+                    )
 
-                is RecommendationFolder -> FolderWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    onNavigateClick = onNavigateClick,
-                    onPlayOption = onPlayClick,
-                    libraryActions = libraryActions,
-                )
+                    is RecommendationFolder -> FolderWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        onNavigateClick = onNavigateClick,
+                        onPlayOption = onPlayClick,
+                        libraryActions = libraryActions,
+                    )
 
-                is AudioSource -> AudioSourceWithMenu(
-                    item = item,
-                    viewMode = viewMode,
-                    onPlayOption = onPlayClick,
-                    libraryActions = libraryActions,
-                    providerIconFetcher = null,
-                )
+                    is AudioSource -> AudioSourceWithMenu(
+                        item = item,
+                        viewMode = viewMode,
+                        onPlayOption = onPlayClick,
+                        libraryActions = libraryActions,
+                        providerIconFetcher = null,
+                    )
 
-                // Reaches the client only as a queue item (an AI Radio host clip), never
-                // through a library list, a search result or a browse folder. Named rather
-                // than folded into an `else` so a genuinely new media type still fails here.
-                is SoundEffect -> Unit
+                    // Reaches the client only as a queue item (an AI Radio host clip), never
+                    // through a library list, a search result or a browse folder. Named rather
+                    // than folded into an `else` so a genuinely new media type still fails here.
+                    is SoundEffect -> Unit
+                }
             }
         }
 

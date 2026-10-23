@@ -270,6 +270,7 @@ class MediaItemFactory(
             chapters = it.chapters?.map(::createChapter).orEmpty(),
             lyrics = it.lyrics,
             lrcLyrics = it.lrcLyrics,
+            description = it.description,
         )
     }
 

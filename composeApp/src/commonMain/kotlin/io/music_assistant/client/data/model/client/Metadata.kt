@@ -15,4 +15,6 @@ data class Metadata(
     // metadata/get_track_lyrics round-trip. [lrcLyrics] is timestamped LRC, [lyrics] plain.
     val lyrics: String?,
     val lrcLyrics: String?,
+    // The item's description. A radio provider with live data names what is on air in it.
+    val description: String? = null,
 )

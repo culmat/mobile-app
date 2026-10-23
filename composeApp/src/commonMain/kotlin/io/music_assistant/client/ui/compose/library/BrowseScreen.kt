@@ -57,6 +57,7 @@ fun BrowseScreen(
     }
 
     val dataState by browseViewModel.state.collectAsStateWithLifecycle()
+    val nowPlaying by browseViewModel.nowPlaying.collectAsStateWithLifecycle()
 
     TopBarLayout(
         topBar = {
@@ -106,6 +107,7 @@ fun BrowseScreen(
                                 libraryActions = actionsViewModel,
                                 progressActions = actionsViewModel,
                                 contentPadding = contentPadding,
+                                isHighlighted = { it.isPlayedAs(nowPlaying) },
                             )
                         }
                     }
