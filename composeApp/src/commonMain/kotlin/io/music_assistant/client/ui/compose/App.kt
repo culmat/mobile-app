@@ -31,6 +31,7 @@ import io.music_assistant.client.ui.BackgroundRestrictionViewModel
 import io.music_assistant.client.ui.SchemaVersionWarningViewModel
 import io.music_assistant.client.ui.SchemaWarning
 import io.music_assistant.client.ui.compose.common.ProvideDislikeSupport
+import io.music_assistant.client.ui.compose.common.ProvidePlayMediaSupport
 import io.music_assistant.client.ui.compose.common.ProvideGrantedScopes
 import io.music_assistant.client.ui.compose.common.dismissKeyboardOnTap
 import io.music_assistant.client.ui.compose.common.items.ProvideClickActionPrefs
@@ -97,8 +98,10 @@ fun App() {
             ) {
                 ProvideGrantedScopes {
                     ProvideDislikeSupport {
-                        ProvideClickActionPrefs {
-                            TopLevelNavRoot()
+                        ProvidePlayMediaSupport {
+                            ProvideClickActionPrefs {
+                                TopLevelNavRoot()
+                            }
                         }
                     }
                 }

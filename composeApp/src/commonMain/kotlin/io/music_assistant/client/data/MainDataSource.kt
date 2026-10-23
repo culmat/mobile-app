@@ -45,6 +45,8 @@ import io.music_assistant.client.data.model.server.events.QueueItemsUpdatedEvent
 import io.music_assistant.client.data.model.server.events.QueueTimeUpdatedEvent
 import io.music_assistant.client.data.model.server.events.QueueUpdatedEvent
 import io.music_assistant.client.data.model.server.supportsAiRadio
+import io.music_assistant.client.data.model.server.PlayMediaSupport
+import io.music_assistant.client.data.model.server.playMediaSupport
 import io.music_assistant.client.data.model.server.supportsDislike
 import io.music_assistant.client.data.play.PlayDispatcher
 import io.music_assistant.client.data.repository.MediaItemChange
@@ -208,6 +210,12 @@ class MainDataSource(
         apiClient.sessionState
             .map { supportsDislike((it as? HasConnectionData)?.serverInfo?.schemaVersion) }
             .stateIn(this, SharingStarted.Eagerly, false)
+
+    /** The optional `play_media` flags of the server ([playMediaSupport]). None while no session is up. */
+    val playMediaSupport: StateFlow<PlayMediaSupport> =
+        apiClient.sessionState
+            .map { playMediaSupport((it as? HasConnectionData)?.serverInfo?.schemaVersion) }
+            .stateIn(this, SharingStarted.Eagerly, PlayMediaSupport.NONE)
 
     /**
      * Authoritative favorite state per track, keyed by [favKey]. The server's

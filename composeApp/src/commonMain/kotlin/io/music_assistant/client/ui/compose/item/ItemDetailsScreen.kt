@@ -56,9 +56,9 @@ import io.music_assistant.client.data.model.client.ClickContext
 import io.music_assistant.client.data.model.client.ImageType
 import io.music_assistant.client.data.model.client.MediaType
 import io.music_assistant.client.data.model.client.ProviderDetails
-import io.music_assistant.client.data.model.client.QueueOption
 import io.music_assistant.client.data.model.client.SortField
 import io.music_assistant.client.data.model.client.SortOption
+import io.music_assistant.client.data.play.PlayMode
 import io.music_assistant.client.data.model.client.SubItemContext
 import io.music_assistant.client.data.model.client.items.Album
 import io.music_assistant.client.data.model.client.items.AppMediaItem
@@ -204,9 +204,9 @@ fun ItemDetails(
     onMarkUnplayed: (AppMediaItem) -> Unit = {},
     onRemoveFromPlaylist: (String, Int) -> Unit = { _, _ -> },
     providerIconFetcher: ProviderIconFetcher = { _, _, _ -> },
-    onPlayClick: (QueueOption, Boolean) -> Unit = { _, _ -> },
+    onPlayClick: (PlayMode) -> Unit = {},
     onChapterClick: (Int) -> Unit = {},
-    onChildPlayClick: PlayHandler<AppMediaItem> = { _, _, _, _ -> },
+    onChildPlayClick: PlayHandler<AppMediaItem> = { _, _ -> },
     onPlayableItemsSortChanged: (SubItemContext, SortOption) -> Unit = { _, _ -> },
     onPlayableItemsQueryChanged: (String?) -> Unit = {},
     onTabSelected: (ItemDetailsTab) -> Unit = {},
@@ -330,7 +330,7 @@ private fun ItemContent(
     state: ItemDetailsViewModel.State,
     onNavigateClick: (AppMediaItem) -> Unit,
     onNavigateToList: (String, ItemList, ClickContext) -> Unit,
-    onPlayItemClick: (QueueOption, Boolean) -> Unit,
+    onPlayItemClick: (PlayMode) -> Unit,
     onPlayChildClick: PlayHandler<AppMediaItem>,
     onChapterClick: (Int) -> Unit,
     playlistActions: PlaylistActions,

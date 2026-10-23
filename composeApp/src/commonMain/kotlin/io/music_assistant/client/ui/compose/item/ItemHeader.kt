@@ -55,7 +55,7 @@ import androidx.window.core.layout.WindowSizeClass
 import coil3.compose.AsyncImage
 import io.music_assistant.client.data.model.client.AppMediaItemFixtures
 import io.music_assistant.client.data.model.client.ImageType
-import io.music_assistant.client.data.model.client.QueueOption
+import io.music_assistant.client.data.play.PlayMode
 import io.music_assistant.client.data.model.client.items.Album
 import io.music_assistant.client.data.model.client.items.AppMediaItem
 import io.music_assistant.client.data.model.client.items.Artist
@@ -111,7 +111,7 @@ fun ItemHeader(
         MaterialTheme.colorScheme.primary,
     ),
     providerIconFetcher: ProviderIconFetcher? = null,
-    onPlayClick: (QueueOption, Boolean) -> Unit = { _, _ -> },
+    onPlayClick: (PlayMode) -> Unit = {},
     navigateToItem: (AppMediaItem) -> Unit = {},
 ) {
     // Art color on top, fading down to the surface the Screen actually paints, so the
