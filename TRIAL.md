@@ -5,3 +5,4 @@ It installs as **MA Trial** next to the official app. It is signed with this for
 ## In this build
 
 - **Browse shows what radio stations play.** A station's row shows its description instead of "Radio". A provider with live data, like FIP, names the song on air there. While the list is open it follows the server's updates, so song and cover change with the music, and the item the selected player plays is highlighted.
+- **Tap the cover to see it alone.** In the expanded player, a tap on the cover shows it as large as the screen allows, over a blurred copy of itself that slowly breathes while the music plays and rests when it pauses. The system bars hide, and the screen stays on while music plays. Tap anywhere or go back to return.
