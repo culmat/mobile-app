@@ -3,8 +3,8 @@ package io.music_assistant.sendspin.api
 import kotlinx.coroutines.flow.Flow
 
 /** Platform audio output. [open] builds a fresh device stream every time. */
-interface AudioSink {
-    fun open(format: SinkFormat): SinkHandle
+public interface AudioSink {
+    public fun open(format: SinkFormat): SinkHandle
 }
 
 /**
@@ -12,7 +12,7 @@ interface AudioSink {
  * decodes itself (iOS) provides pass-through decoders and gets [codec] with
  * the stream's [codecHeaderBase64], and the scheduler treats the bytes as opaque.
  */
-data class SinkFormat(
+public data class SinkFormat(
     val sampleRate: Int,
     val channels: Int,
     /** 16, 24, or 32. */
@@ -24,37 +24,37 @@ data class SinkFormat(
     val bytesPerFrame: Int get() = channels * bitDepth / 8
 }
 
-interface SinkHandle : AutoCloseable {
+public interface SinkHandle : AutoCloseable {
     /**
      * Writes interleaved PCM. Blocks until the sink accepted the bytes.
      * Returns the bytes accepted (at least 1), or -1 when the sink is dead.
      * There is no zero: a sink that accepts nothing is dead.
      */
-    fun write(pcm: ByteArray, offset: Int, length: Int): Int
+    public fun write(pcm: ByteArray, offset: Int, length: Int): Int
 
-    fun pause()
+    public fun pause()
 
-    fun resume()
+    public fun resume()
 
     /** Drops audio queued inside the sink. */
-    fun flush()
+    public fun flush()
 
     /** Where the device is in the written stream, or null when the platform cannot say. */
-    fun position(): SinkPosition?
+    public fun position(): SinkPosition?
 
     /** Cumulative count of device underruns; 0 when the platform cannot say. */
-    fun underrunCount(): Int
+    public fun underrunCount(): Int
 
     /** Output latency after the last written frame, or null when unknown. */
-    val latencyMicros: Long?
+    public val latencyMicros: Long?
 
-    val events: Flow<SinkEvent>
+    public val events: Flow<SinkEvent>
 }
 
 /** [framesPlayed] frames had reached the device at local time [atMicros]. */
-data class SinkPosition(val framesPlayed: Long, val atMicros: Long)
+public data class SinkPosition(val framesPlayed: Long, val atMicros: Long)
 
-enum class SinkEvent {
+public enum class SinkEvent {
     /**
      * Output taken away (focus loss, call, headphones unplugged): the stream ends.
      * The sink silences itself and keeps accepting writes, so a writer never blocks.

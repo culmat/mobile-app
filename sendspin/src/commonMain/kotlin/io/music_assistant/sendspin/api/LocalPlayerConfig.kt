@@ -9,7 +9,7 @@ import kotlinx.coroutines.channels.ReceiveChannel
  * A change to [endpoint], [deviceName], [codecPreference], [bitDepth], or [bufferSeconds]
  * restarts the connection. The audio pipeline is untouched. [userDelayMs] applies live.
  */
-data class LocalPlayerConfig(
+public data class LocalPlayerConfig(
     val endpoint: Endpoint,
     val deviceName: String,
     /** Ordered preference; formats are advertised only for codecs the [DecoderFactory] supports. */
@@ -25,18 +25,25 @@ data class LocalPlayerConfig(
     val userDelayMs: Int,
 )
 
-sealed interface Endpoint {
+public sealed interface Endpoint {
     /** The app has established that its server cannot provide this player's protocol. */
-    data class Unsupported(val reason: String) : Endpoint
+    public data class Unsupported(val reason: String) : Endpoint
 
-    /** Dedicated WebSocket through an authenticating proxy. Sends `auth` with [authToken] before `client/init`. */
-    data class WebSocket(val url: String, val authToken: String, val wire: WireVersion) : Endpoint
+    /**
+     * Dedicated WebSocket. With an [authToken], the server is behind an authenticating
+     * proxy: the player sends `auth` with the token and waits for `auth_ok` before
+     * `client/init`. Without one, the Sendspin protocol starts at once.
+     */
+    public data class WebSocket(val url: String, val wire: WireVersion, val authToken: String? = null) : Endpoint
 
     /**
      * WebRTC data channel. Every connection attempt calls [openChannel]; the app
      * renegotiates inside it when needed. A channel is single-use.
      */
-    class WebRtc(val wire: WireVersion, val openChannel: suspend () -> SendspinTransport) : Endpoint
+    public class WebRtc(
+        public val wire: WireVersion,
+        public val openChannel: suspend () -> SendspinTransport,
+    ) : Endpoint
 }
 
 /**
@@ -44,16 +51,16 @@ sealed interface Endpoint {
  * connection ends, [inbound] closes (with a cause on failure) and the transport
  * is discarded.
  */
-interface SendspinTransport {
-    val inbound: ReceiveChannel<Frame>
+public interface SendspinTransport {
+    public val inbound: ReceiveChannel<Frame>
 
     /** Throws when the connection is gone. */
-    suspend fun send(frame: Frame)
+    public suspend fun send(frame: Frame)
 
-    suspend fun close()
+    public suspend fun close()
 }
 
-sealed interface Frame {
-    data class Text(val text: String) : Frame
-    class Binary(val bytes: ByteArray) : Frame
+public sealed interface Frame {
+    public data class Text(val text: String) : Frame
+    public class Binary(public val bytes: ByteArray) : Frame
 }

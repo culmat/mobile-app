@@ -104,7 +104,7 @@ class LocalPlayerEndpoints(
                 (previous as? Endpoint.WebRtc)?.takeIf { it.wire == wire } ?: Endpoint.WebRtc(wire, ::openFreshChannel)
 
             is SessionState.Connected.Direct -> state.authenticatedToken()?.let { token ->
-                Endpoint.WebSocket(webSocketUrl(state), token, wire)
+                Endpoint.WebSocket(webSocketUrl(state), wire, authToken = token)
             }
         }
     }

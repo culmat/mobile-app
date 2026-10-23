@@ -44,6 +44,7 @@ import io.music_assistant.sendspin.wire.PlayerStateObject
 import io.music_assistant.sendspin.wire.PlayerStateValue
 import io.music_assistant.sendspin.wire.PlayerSupport
 import io.music_assistant.sendspin.wire.ServerMessage
+import io.music_assistant.sendspin.wire.WireAudioFormat
 import io.music_assistant.sendspin.wire.WireCodec
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -231,15 +232,17 @@ internal class SendspinPlayerImpl(
             wire = key.endpoint.wire,
             deviceName = key.deviceName,
             playerSupport = PlayerSupport(
-                supportedFormats = key.formats(deps.decoders::supports),
+                supportedFormats = key.formats(deps.decoders::supports).map(WireAudioFormat::from),
                 bufferCapacity = key.capacityBytes(),
                 supportedCommands = emptyList(),
             ),
-            deviceInfo = EncryptedDeviceInfo(
-                productName = "Mobile Application",
-                manufacturer = "Music Assistant",
-                softwareVersion = deps.softwareVersion,
-            ),
+            deviceInfo = with(deps.deviceInfo) {
+                EncryptedDeviceInfo(
+                    productName = productName,
+                    manufacturer = manufacturer,
+                    softwareVersion = softwareVersion,
+                )
+            },
         )
 
         override fun onReady(info: SessionInfo) {

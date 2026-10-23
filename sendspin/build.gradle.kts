@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -7,6 +8,14 @@ plugins {
 }
 
 kotlin {
+    explicitApi()
+
+    // Metadata that a consumer one Kotlin minor behind can read.
+    compilerOptions {
+        languageVersion.set(KotlinVersion.KOTLIN_2_3)
+        apiVersion.set(KotlinVersion.KOTLIN_2_3)
+    }
+
     android {
         namespace = "io.music_assistant.sendspin"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -23,9 +32,10 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(libs.kotlinx.coroutines.core)
+            // Public API types: StateFlow, Flow, CoroutineDispatcher, HttpClient.
+            api(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.atomicfu)
-            implementation(libs.ktor.client.core)
+            api(libs.ktor.client.core)
             implementation(libs.ktor.client.websockets)
             // Brings kotlinx-serialization-json as an API dependency.
             implementation(libs.ktor.client.json)

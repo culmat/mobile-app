@@ -155,7 +155,7 @@ class WireCodecTest {
                 trustLevel = "user",
                 supportedRoles = listOf(VersionedRole.PLAYER_V1),
                 playerV1Support = PlayerSupport(
-                    supportedFormats = listOf(AudioFormatSpec(AudioCodec.FLAC, 2, 48000, 16)),
+                    supportedFormats = listOf(WireAudioFormat.from(AudioFormatSpec(AudioCodec.FLAC, 2, 48000, 16))),
                     bufferCapacity = 15_000_000,
                     supportedCommands = listOf(PlayerCommand.VOLUME),
                 ),
@@ -182,7 +182,7 @@ class WireCodecTest {
                 deviceInfo = EncryptedDeviceInfo(productName = "App", manufacturer = "MA", softwareVersion = "1"),
                 supportedRoles = listOf(VersionedRole.PLAYER_V1),
                 playerV1Support = PlayerSupport(
-                    supportedFormats = listOf(AudioFormatSpec(AudioCodec.FLAC, 2, 48000, 16)),
+                    supportedFormats = listOf(WireAudioFormat.from(AudioFormatSpec(AudioCodec.FLAC, 2, 48000, 16))),
                     bufferCapacity = 15_000_000,
                 ),
                 supportedPairMethods = pairMethods(WireVersion.SPEC_1_0, listOf("pairing_psk")),

@@ -16,12 +16,12 @@ package io.music_assistant.sendspin.api
  * [MonotonicFrameCounter.reset]. Not thread-safe: one owner, the sink's
  * audio-thread caller.
  */
-class SteppedHeadTracker(private val sampleRate: Int) {
+public class SteppedHeadTracker(private val sampleRate: Int) {
     private var lastFrames = NONE
     private var movedAtMicros = 0L
     private var stepMicros = 0L
 
-    fun position(framesPlayed: Long, nowMicros: Long): SinkPosition {
+    public fun position(framesPlayed: Long, nowMicros: Long): SinkPosition {
         if (framesPlayed != lastFrames) {
             val step = framesPlayed - lastFrames
             stepMicros = if (lastFrames == NONE || step < 0) 0L else step * MICROS_PER_SECOND / sampleRate
@@ -31,7 +31,7 @@ class SteppedHeadTracker(private val sampleRate: Int) {
         return SinkPosition(framesPlayed, maxOf(movedAtMicros, nowMicros - stepMicros))
     }
 
-    fun reset() {
+    public fun reset() {
         lastFrames = NONE
         stepMicros = 0L
     }

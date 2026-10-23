@@ -11,12 +11,12 @@ package io.music_assistant.sendspin.api
  * Reads of missing or undecodable data return null and never throw: storage
  * loss must lead to clean identity regeneration, not a crash.
  */
-interface SendspinKeyStore {
+public interface SendspinKeyStore {
     /** Returns the stored bytes, or null when absent or unreadable. */
-    fun read(key: String): ByteArray?
+    public fun read(key: String): ByteArray?
 
     /** Stores [value] under [key], replacing any previous value. */
-    fun write(key: String, value: ByteArray)
+    public fun write(key: String, value: ByteArray)
 
-    fun delete(key: String)
+    public fun delete(key: String)
 }

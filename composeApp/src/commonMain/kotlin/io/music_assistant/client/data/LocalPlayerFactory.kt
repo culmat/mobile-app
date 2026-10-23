@@ -8,6 +8,7 @@ import io.music_assistant.client.utils.sendspinClock
 import io.music_assistant.sendspin.SendspinPlayer
 import io.music_assistant.sendspin.api.AudioSink
 import io.music_assistant.sendspin.api.DecoderFactory
+import io.music_assistant.sendspin.api.DeviceInfo
 import io.music_assistant.sendspin.api.LocalPlayerConfig
 import io.music_assistant.sendspin.api.SendspinDeps
 import io.music_assistant.sendspin.api.SendspinKeyStore
@@ -51,7 +52,11 @@ class SendspinLocalPlayerFactory(
             online = networkMonitor.isAvailable,
             approvePairing = approvePairing,
             audioDispatcher = audioDispatcher,
-            softwareVersion = appVersion.name,
+            deviceInfo = DeviceInfo(
+                productName = "Mobile Application",
+                manufacturer = "Music Assistant",
+                softwareVersion = appVersion.name,
+            ),
             clock = sendspinClock,
         ),
         scope = scope,

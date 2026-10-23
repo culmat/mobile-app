@@ -9,7 +9,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class LocalPlayerConfigMappingTest {
-    private val endpoint = Endpoint.WebSocket("wss://ma/sendspin", "token", WireVersion.LEGACY_9)
+    private val endpoint = Endpoint.WebSocket("wss://ma/sendspin", WireVersion.LEGACY_9, authToken = "token")
 
     private fun config(staticDelayMs: Int, enabled: Boolean = true, endpoint: Endpoint? = this.endpoint) =
         localPlayerConfig(enabled, endpoint, "Phone", AudioCodec.FLAC, 24, 15, staticDelayMs)

@@ -14,6 +14,7 @@ import io.music_assistant.sendspin.noise.crypto.X25519KeyPair
 import io.music_assistant.sendspin.wire.AudioChunk
 import io.music_assistant.sendspin.wire.PlayerSupport
 import io.music_assistant.sendspin.wire.ServerMessage
+import io.music_assistant.sendspin.wire.WireAudioFormat
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
@@ -74,7 +75,7 @@ internal abstract class NoiseSessionTestHarness(protected val wire: WireVersion)
                 wire = wire,
                 deviceName = deviceName,
                 playerSupport = PlayerSupport(
-                    supportedFormats = listOf(AudioFormatSpec(AudioCodec.OPUS, 2, 48000, 16)),
+                    supportedFormats = listOf(WireAudioFormat.from(AudioFormatSpec(AudioCodec.OPUS, 2, 48000, 16))),
                     bufferCapacity = 1_000_000,
                     supportedCommands = emptyList(),
                 ),

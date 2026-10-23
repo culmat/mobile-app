@@ -62,7 +62,8 @@ disables it, and that is the only stop.
 
 The package `io.music_assistant.sendspin.api` plus this factory are the whole public surface.
 Every other declaration in the module is `internal`, so the compiler rejects a leak into the
-application.
+application. The module compiles in explicit API mode, so each public declaration has an
+explicit `public` modifier.
 
 ### Configuration
 
@@ -91,7 +92,7 @@ Clients should keep the same `Endpoint` instance while the endpoint did not chan
 | `SendspinTransport` | Frames over one WebRTC data channel. |
 
 `SendspinDeps` also takes the application's `HttpClient`, an `online` flow, an `approvePairing`
-call, the audio dispatcher, the software version, and an optional clock.
+call, the audio dispatcher, the `DeviceInfo` for `client/hello`, and an optional clock.
 
 A decoder can be a **pass-through**: it returns `outputCodec != PCM`, and the sink decodes the
 bytes itself. iOS works this way. The scheduler then treats the bytes as opaque. It cannot trim,
@@ -101,11 +102,12 @@ pad, or resample them, so it schedules open loop. See the KDoc on `Scheduler`.
 
 The module holds no credential of its own. It can need two things from the application.
 
-**`Endpoint.WebSocket` carries a token for an authenticating proxy.** A server can put the
+**`Endpoint.WebSocket` can carry a token for an authenticating proxy.** A server can put the
 Sendspin server behind the same authenticated reverse proxy as its control socket. Then a client
-needs one open port and one credential. The module sends `auth` and waits for `auth_ok` before
-the Sendspin protocol starts. This exchange belongs to the proxy, not to Sendspin. A WebRTC data
-channel skips it, because the channel is already proven.
+needs one open port and one credential. With a token, the module sends `auth` and waits for
+`auth_ok` before the Sendspin protocol starts. This exchange belongs to the proxy, not to
+Sendspin. Without a token, the Sendspin protocol starts at once. A WebRTC data channel never
+sends `auth`, because the channel is already proven.
 
 **`approvePairing` pairs the player without a person.** A Sendspin server does not accept an
 unknown player on its own. It shows a pairing code, and a person approves the code. A Sendspin
@@ -175,10 +177,6 @@ already buffered keeps playing, and a stream that resumes in the same format is 
 - **No volume or mute commands.** The player sends an empty `supported_commands` list. It
   ignores each `server/command` message. Control the volume through the control plane of the
   application.
-- **The WebSocket endpoint always runs the proxy exchange.** Each `Endpoint.WebSocket`
-  connection sends `auth` first. For a server without this proxy, supply your own
-  `SendspinTransport` through `Endpoint.WebRtc(openChannel)`. The module calls `openChannel` and
-  uses the transport that it gets, so the transport does not have to be WebRTC.
 - **Silent pairing is the only pairing route.** If the server waits for a person to approve a
   pairing code, the server rejects each attempt with `pairing_required`. After 5 rejections in a
   row, the player goes to `Failed(Unauthorized)`. To try again, set the config to `null` and then
@@ -211,6 +209,8 @@ way:
 - **Endpoint.** The default URL is the Music Assistant socket at `<server>/sendspin`. The token
   in `Endpoint.WebSocket` is the Music Assistant access token. Over Remote Access, the
   application opens a data channel on its WebRTC peer connection.
+- **Device info.** The application reports the product name "Mobile Application", the
+  manufacturer "Music Assistant", and the application version.
 - **Pairing.** `approvePairing` sends the token in the `sendspin/pair_web_player` command over
   the API connection of the application.
 - **Encryption.** The encrypted protocol needs Music Assistant schema 45 or newer. For a server

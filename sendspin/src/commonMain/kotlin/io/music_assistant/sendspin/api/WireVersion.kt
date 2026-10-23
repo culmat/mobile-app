@@ -6,7 +6,7 @@ package io.music_assistant.sendspin.api
  * connect to an aiosendspin 9.x server and a 9.x client is only tolerated by
  * a 10.x server while its `allow_legacy_clients` setting stays on.
  */
-enum class WireVersion {
+public enum class WireVersion {
     /** The pre-1.0 wire of aiosendspin 9.x. */
     LEGACY_9,
 

@@ -7,11 +7,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlin.time.TimeSource
 
 /** The local Sendspin player. Configured by a config flow; observed through [state] and [events]. */
-interface SendspinPlayer {
-    val state: StateFlow<PlayerState>
+public interface SendspinPlayer {
+    public val state: StateFlow<PlayerState>
 
     /** UI-meaningful occurrences only. Buffered; a slow collector loses the oldest. */
-    val events: Flow<PlayerEvent>
+    public val events: Flow<PlayerEvent>
 
     /**
      * Local pause, with no server round trip: while held the player makes no
@@ -19,7 +19,7 @@ interface SendspinPlayer {
      * release plays the next audio the server sends. The hold outlives
      * reconnects and enable cycles; only the app releases it.
      */
-    fun hold(held: Boolean)
+    public fun hold(held: Boolean)
 }
 
 /**
@@ -27,25 +27,25 @@ interface SendspinPlayer {
  * public surface of the module; the Noise protocol, wire format and identity
  * handling stay internal.
  */
-class SendspinDeps(
-    val sink: AudioSink,
-    val decoders: DecoderFactory,
-    val keyStore: SendspinKeyStore,
-    val httpClient: HttpClient,
+public class SendspinDeps(
+    public val sink: AudioSink,
+    public val decoders: DecoderFactory,
+    public val keyStore: SendspinKeyStore,
+    public val httpClient: HttpClient,
     /** Network reachability; `false` pauses reconnect attempts until `true`. */
-    val online: StateFlow<Boolean>,
+    public val online: StateFlow<Boolean>,
     /**
      * Silent pairing: get this token approved out of band, over whatever
      * trusted channel the app already holds, so no person approves a pairing
      * code. Throw on failure; it is non-fatal. An app that pairs by the code
      * instead supplies a no-op.
      */
-    val approvePairing: suspend (pairingToken: String) -> Unit,
+    public val approvePairing: suspend (pairingToken: String) -> Unit,
     /** Where the audio loop runs: one thread, high priority where the platform allows. */
-    val audioDispatcher: CoroutineDispatcher,
-    /** Reported as `device_info.software_version`, so the server names the app version in its logs. */
-    val softwareVersion: String,
-    val clock: MonotonicClock = SystemMonotonicClock,
+    public val audioDispatcher: CoroutineDispatcher,
+    /** Reported as `device_info` in `client/hello`. */
+    public val deviceInfo: DeviceInfo,
+    public val clock: MonotonicClock = SystemMonotonicClock,
 )
 
 /**
@@ -53,11 +53,11 @@ class SendspinDeps(
  * must tick through device sleep: the server offset is learned against it, and a clock that
  * pauses in a doze is off by the whole sleep when playback resumes.
  */
-fun interface MonotonicClock {
-    fun nowMicros(): Long
+public fun interface MonotonicClock {
+    public fun nowMicros(): Long
 }
 
-object SystemMonotonicClock : MonotonicClock {
+public object SystemMonotonicClock : MonotonicClock {
     private val origin = TimeSource.Monotonic.markNow()
     override fun nowMicros(): Long = origin.elapsedNow().inWholeMicroseconds
 }

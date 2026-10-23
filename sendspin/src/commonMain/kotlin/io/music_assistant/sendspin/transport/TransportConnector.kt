@@ -8,7 +8,7 @@ import io.music_assistant.sendspin.api.SendspinTransport
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Opens one authenticated transport per call. The caller owns the result.
+ * Opens one transport per call, past the proxy `auth` when the endpoint has a token. The caller owns the result.
  * [openWebSocket] is injectable so the connector is testable without Ktor.
  * The connector itself is owned by one enabled lifetime: [close] releases
  * whatever it holds (the derived Ktor client), never the app's own client.
@@ -21,11 +21,13 @@ internal class TransportConnector(
         is Endpoint.Unsupported -> error(endpoint.reason)
         is Endpoint.WebRtc -> endpoint.openChannel()
         is Endpoint.WebSocket -> openWebSocket(endpoint.url).also { ws ->
-            try {
-                ProxyAuth.authenticate(ws, endpoint.authToken, clientId)
-            } catch (e: Throwable) {
-                ws.close()
-                throw e
+            endpoint.authToken?.let { token ->
+                try {
+                    ProxyAuth.authenticate(ws, token, clientId)
+                } catch (e: Throwable) {
+                    ws.close()
+                    throw e
+                }
             }
         }
     }

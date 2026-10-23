@@ -1,5 +1,6 @@
 package io.music_assistant.sendspin.wire
 
+import io.music_assistant.sendspin.api.AudioCodec
 import io.music_assistant.sendspin.api.AudioFormatSpec
 import io.music_assistant.sendspin.api.WireVersion
 import kotlinx.serialization.SerialName
@@ -148,9 +149,23 @@ internal enum class PlayerCommand {
     MUTE,
 }
 
+/** One `supported_formats` entry. The wire codec is the lowercase [AudioCodec] name. */
+@Serializable
+internal data class WireAudioFormat(
+    val codec: String,
+    val channels: Int,
+    @SerialName("sample_rate") val sampleRate: Int,
+    @SerialName("bit_depth") val bitDepth: Int,
+) {
+    companion object {
+        fun from(format: AudioFormatSpec) =
+            WireAudioFormat(format.codec.name.lowercase(), format.channels, format.sampleRate, format.bitDepth)
+    }
+}
+
 @Serializable
 internal data class PlayerSupport(
-    @SerialName("supported_formats") val supportedFormats: List<AudioFormatSpec>,
+    @SerialName("supported_formats") val supportedFormats: List<WireAudioFormat>,
     @SerialName("buffer_capacity") val bufferCapacity: Int,
     /** 9.x wire only; spec 1.0.0-rc1 reports commands in `client/state`. */
     @SerialName("supported_commands") val supportedCommands: List<PlayerCommand>? = null,

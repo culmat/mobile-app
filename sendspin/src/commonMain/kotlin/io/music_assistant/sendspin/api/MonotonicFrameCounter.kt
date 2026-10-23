@@ -11,11 +11,11 @@ package io.music_assistant.sendspin.api
  * never moves that anchor. This assumes the counter is read far more often
  * than once per half range (about 12 hours at 48 kHz).
  */
-class MonotonicFrameCounter {
+public class MonotonicFrameCounter {
     /** Highest extended position returned so far: the epoch anchor. */
     private var latest = 0L
 
-    fun extend(raw: Long): Long {
+    public fun extend(raw: Long): Long {
         val low = raw and MASK
         var candidate = (latest and MASK.inv()) + low
         if (candidate - latest > HALF && candidate >= RANGE) {
@@ -27,7 +27,7 @@ class MonotonicFrameCounter {
         return candidate
     }
 
-    fun reset() {
+    public fun reset() {
         latest = 0L
     }
 

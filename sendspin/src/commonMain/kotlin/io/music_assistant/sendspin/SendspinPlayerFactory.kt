@@ -13,5 +13,9 @@ import kotlinx.coroutines.flow.StateFlow
  * instance across config updates unless the endpoint really changed, because
  * an endpoint change restarts the connection.
  */
-fun SendspinPlayer(config: StateFlow<LocalPlayerConfig?>, deps: SendspinDeps, scope: CoroutineScope): SendspinPlayer =
+public fun SendspinPlayer(
+    config: StateFlow<LocalPlayerConfig?>,
+    deps: SendspinDeps,
+    scope: CoroutineScope,
+): SendspinPlayer =
     SendspinPlayerImpl(config, deps, scope)

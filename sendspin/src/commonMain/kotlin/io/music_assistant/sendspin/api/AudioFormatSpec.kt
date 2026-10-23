@@ -4,15 +4,11 @@
 
 package io.music_assistant.sendspin.api
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-
-@Serializable
-data class AudioFormatSpec(
-    @SerialName("codec") val codec: AudioCodec,
-    @SerialName("channels") val channels: Int,
-    @SerialName("sample_rate") val sampleRate: Int,
-    @SerialName("bit_depth") val bitDepth: Int,
+public data class AudioFormatSpec(
+    val codec: AudioCodec,
+    val channels: Int,
+    val sampleRate: Int,
+    val bitDepth: Int,
 ) {
     init {
         require(channels in 1..32) { "Channels must be between 1 and 32" }
@@ -32,7 +28,7 @@ private const val OPUS_BYTES_PER_SECOND = 16_000
  * Wire bytes per second of [codec] at [bitDepth] in the advertised shape, as a
  * buffer bound: FLAC is counted as raw PCM, its worst case. Opus is always 16-bit.
  */
-fun estimatedBytesPerSecond(codec: AudioCodec, bitDepth: Int): Int = when (codec) {
+public fun estimatedBytesPerSecond(codec: AudioCodec, bitDepth: Int): Int = when (codec) {
     AudioCodec.OPUS -> OPUS_BYTES_PER_SECOND
     AudioCodec.FLAC, AudioCodec.PCM -> ADVERTISED_SAMPLE_RATE * ADVERTISED_CHANNELS * bitDepth / 8
 }

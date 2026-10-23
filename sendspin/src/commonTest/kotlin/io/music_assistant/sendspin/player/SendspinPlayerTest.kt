@@ -7,6 +7,7 @@ import io.ktor.client.request.get
 import io.music_assistant.sendspin.SendspinPlayer
 import io.music_assistant.sendspin.api.AudioCodec
 import io.music_assistant.sendspin.api.AudioPhase
+import io.music_assistant.sendspin.api.DeviceInfo
 import io.music_assistant.sendspin.api.Endpoint
 import io.music_assistant.sendspin.api.FailureCause
 import io.music_assistant.sendspin.api.LocalPlayerConfig
@@ -117,7 +118,7 @@ internal abstract class SendspinPlayerScenarios(protected val wire: WireVersion)
                 online = online,
                 approvePairing = { pairCalls++ },
                 audioDispatcher = StandardTestDispatcher(scope.testScheduler),
-                softwareVersion = "1.2.3",
+                deviceInfo = DeviceInfo(productName = "Test", manufacturer = "Tests", softwareVersion = "1.2.3"),
                 clock = clock,
             )
             player = create(config, deps, scope.backgroundScope)

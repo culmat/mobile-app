@@ -1,16 +1,7 @@
 package io.music_assistant.sendspin.api
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-
-@Serializable
-enum class AudioCodec {
-    @SerialName("opus")
+public enum class AudioCodec {
     OPUS,
-
-    @SerialName("flac")
     FLAC,
-
-    @SerialName("pcm")
     PCM,
 }
