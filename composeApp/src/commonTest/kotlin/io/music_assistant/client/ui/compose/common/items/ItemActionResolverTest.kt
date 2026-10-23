@@ -13,6 +13,7 @@ import io.music_assistant.client.data.model.client.testPodcast
 import io.music_assistant.client.data.model.client.testPodcastEpisode
 import io.music_assistant.client.data.model.client.testTrack
 import io.music_assistant.client.data.model.server.PlayMediaSupport
+import io.music_assistant.client.data.model.server.PlayMediaSupport.Companion.ALL
 import io.music_assistant.client.data.play.PlayMode
 import musicassistantclient.composeapp.generated.resources.Res
 import musicassistantclient.composeapp.generated.resources.action_play_album_from_here
@@ -25,8 +26,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ItemActionResolverTest {
-    private val ALL = PlayMediaSupport(shuffle = true, startFromBeginning = true)
-
     private fun longClick(defaultAction: ItemAction?) = resolveLongClickActions(
         item = testTrack(),
         canEditLibrary = true,
@@ -85,7 +84,8 @@ class ItemActionResolverTest {
 
     @Test
     fun `play-button overflow drops start endless mix when unavailable`() {
-        val actions = resolvePlayButtonActions(testPodcastEpisode(), default = ItemAction.Play(QueueOption.REPLACE), ALL)
+        val actions =
+            resolvePlayButtonActions(testPodcastEpisode(), default = ItemAction.Play(QueueOption.REPLACE), ALL)
         assertFalse(ItemAction.StartEndlessMix in actions)
         assertEquals(
             listOf(
@@ -117,7 +117,11 @@ class ItemActionResolverTest {
         )
 
     private val fiveQueueOptions = listOf(
-        QueueOption.REPLACE, QueueOption.PLAY, QueueOption.NEXT, QueueOption.ADD, QueueOption.REPLACE_NEXT,
+        QueueOption.REPLACE,
+        QueueOption.PLAY,
+        QueueOption.NEXT,
+        QueueOption.ADD,
+        QueueOption.REPLACE_NEXT,
     ).map { ItemAction.Play(it) }
 
     @Test

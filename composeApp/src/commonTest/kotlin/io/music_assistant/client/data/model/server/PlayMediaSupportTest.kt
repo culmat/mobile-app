@@ -28,6 +28,9 @@ class PlayMediaSupportTest {
 
     @Test
     fun theLocalSchemaSupportsBothFlags() {
-        assertEquals(PlayMediaSupport(shuffle = true, startFromBeginning = true), playMediaSupport(LOCAL_SCHEMA_VERSION))
+        assertEquals(
+            PlayMediaSupport(shuffle = true, startFromBeginning = true),
+            playMediaSupport(LOCAL_SCHEMA_VERSION),
+        )
     }
 }

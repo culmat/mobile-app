@@ -36,8 +36,8 @@ import io.music_assistant.client.ui.compose.common.items.LocalClickActionConfig
 import io.music_assistant.client.ui.compose.common.items.icon
 import io.music_assistant.client.ui.compose.common.items.resolvePlayButtonActions
 import io.music_assistant.client.ui.compose.common.items.title
-import io.music_assistant.client.ui.compose.common.items.toPlayMode
 import io.music_assistant.client.ui.compose.common.items.toOverflowOption
+import io.music_assistant.client.ui.compose.common.items.toPlayMode
 import io.music_assistant.client.ui.contentColorByLuminance
 import musicassistantclient.composeapp.generated.resources.Res
 import musicassistantclient.composeapp.generated.resources.cd_play_options

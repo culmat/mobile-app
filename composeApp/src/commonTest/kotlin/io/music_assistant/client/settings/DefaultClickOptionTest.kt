@@ -70,7 +70,7 @@ class DefaultClickOptionTest {
     }
 
     @Test
-    fun `isAvailableIn is true for PLAY_FROM_HERE with ALBUM, PLAYLIST and PODCAST`() {
+    fun `isAvailableIn is true for PLAY_FROM_HERE with ALBUM PLAYLIST and PODCAST`() {
         assertTrue(
             DefaultClickOption.PLAY_FROM_HERE.isAvailableIn(ClickContext.ALBUM, ItemKind.TRACK),
             "PLAY_FROM_HERE.isAvailableIn(ALBUM, TRACK) should be true",

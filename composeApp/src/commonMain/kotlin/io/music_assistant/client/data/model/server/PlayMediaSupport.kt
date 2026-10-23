@@ -24,6 +24,7 @@ data class PlayMediaSupport(
 ) {
     companion object {
         val NONE = PlayMediaSupport(shuffle = false, startFromBeginning = false)
+        val ALL = PlayMediaSupport(shuffle = true, startFromBeginning = true)
     }
 }
 

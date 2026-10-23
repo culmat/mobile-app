@@ -93,9 +93,21 @@ fun DefaultClickOption.effectiveFor(item: AppMediaItem, support: PlayMediaSuppor
         DefaultClickOption.START_ENDLESS_MIX ->
             if (item.canStartEndlessMix) ItemAction.StartEndlessMix else ItemAction.Play(QueueOption.REPLACE)
         DefaultClickOption.PLAY_FROM_HERE ->
-            if (item is Track || item is PodcastEpisode) ItemAction.PlayFromHere else ItemAction.Play(QueueOption.REPLACE)
+            if (item is Track || item is PodcastEpisode) {
+                ItemAction.PlayFromHere
+            } else {
+                ItemAction.Play(
+                QueueOption.REPLACE,
+            )
+            }
         DefaultClickOption.PLAY_SHUFFLED ->
-            if (support.shuffle && item.canPlayShuffled) ItemAction.PlayShuffled else ItemAction.Play(QueueOption.REPLACE)
+            if (support.shuffle && item.canPlayShuffled) {
+                ItemAction.PlayShuffled
+            } else {
+                ItemAction.Play(
+                QueueOption.REPLACE,
+            )
+            }
         else -> toItemAction()
     }
 }
