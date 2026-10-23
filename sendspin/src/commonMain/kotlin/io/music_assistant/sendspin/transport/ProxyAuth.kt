@@ -10,8 +10,10 @@ import kotlinx.coroutines.withTimeoutOrNull
 internal class ProxyAuthException(message: String) : Exception(message)
 
 /**
- * The MA proxy's `auth` / `auth_ok` exchange. Runs before anything else on a
- * fresh connection, so it may read [SendspinTransport.inbound] directly.
+ * The `auth` / `auth_ok` exchange of an authenticating reverse proxy in front of
+ * the Sendspin server. It is not part of the Sendspin protocol. Runs before
+ * anything else on a fresh connection, so it may read [SendspinTransport.inbound]
+ * directly.
  */
 internal object ProxyAuth {
     private const val REPLY_TIMEOUT_MILLIS = 10_000L

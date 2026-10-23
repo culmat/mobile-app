@@ -18,7 +18,7 @@ internal sealed interface SendspinMessage {
     val type: String
 }
 
-// MARK: - Proxy authentication (WebSocket via the MA proxy, before Noise)
+// MARK: - Proxy authentication (WebSocket via an authenticating proxy, before Noise)
 
 @Serializable
 internal data class ClientAuthMessage(
@@ -283,7 +283,7 @@ internal data class PlayerStateObject(
     companion object {
         fun legacy(state: PlayerStateValue) = PlayerStateObject(state = state)
 
-        /** This client accepts no commands: the control plane stays on the MA API. */
+        /** This client accepts no commands: the control plane stays with the host application. */
         fun spec(outputDelayMs: Int, requiredLeadTimeMs: Int, minBufferMs: Int) = PlayerStateObject(
             outputDelayMs = outputDelayMs,
             requiredLeadTimeMs = requiredLeadTimeMs,

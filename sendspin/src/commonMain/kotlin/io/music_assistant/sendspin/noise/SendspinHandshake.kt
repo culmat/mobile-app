@@ -15,10 +15,10 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /** The only cipher suite this client implements. */
-const val SENDSPIN_SUITE_CHACHAPOLY = "25519_ChaChaPoly_SHA256"
+internal const val SENDSPIN_SUITE_CHACHAPOLY = "25519_ChaChaPoly_SHA256"
 
 /** Core message-format version this client speaks (exact-match field). */
-const val SENDSPIN_CORE_VERSION = 1
+internal const val SENDSPIN_CORE_VERSION = 1
 
 /**
  * Any failure while establishing the encrypted channel. Per the spec's

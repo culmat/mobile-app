@@ -29,7 +29,7 @@ sealed interface Endpoint {
     /** The app has established that its server cannot provide this player's protocol. */
     data class Unsupported(val reason: String) : Endpoint
 
-    /** Dedicated WebSocket through the MA proxy. Sends `auth` with [authToken] before `client/init`. */
+    /** Dedicated WebSocket through an authenticating proxy. Sends `auth` with [authToken] before `client/init`. */
     data class WebSocket(val url: String, val authToken: String, val wire: WireVersion) : Endpoint
 
     /**

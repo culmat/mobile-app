@@ -4,9 +4,9 @@ package io.music_assistant.sendspin.api
  * Byte-blob persistence for the Sendspin identity and trust state.
  *
  * The app provides the implementation over its own settings storage. The
- * identity secrets deliberately share storage with the MA auth token: a
- * separate hardened vault would protect the least valuable secrets in the app
- * while adding platform-keystore failure modes.
+ * identity secrets can deliberately share storage with the app's server
+ * credentials: a separate hardened vault would protect the least valuable
+ * secrets in the app while adding platform-keystore failure modes.
  *
  * Reads of missing or undecodable data return null and never throw: storage
  * loss must lead to clean identity regeneration, not a crash.

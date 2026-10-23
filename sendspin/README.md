@@ -1,11 +1,14 @@
 # Sendspin local player
 
-The `:sendspin` module is the Music Assistant Sendspin client for the `player@v1` role. It
-connects to a Sendspin server, keeps an encrypted session, and follows the server clock. It plays
-the audio stream in time with the other players in a group. The connection is always encrypted:
-there is no plaintext session. The module is a pure Kotlin Multiplatform leaf. It depends on no
-other Gradle project. It contains no Compose code, no Koin code, and no `expect`/`actual`
-declaration. Each platform difference is an interface that the application implements.
+The `:sendspin` module is a Sendspin client for the `player@v1` role. It connects to a Sendspin
+server, keeps an encrypted session, and follows the server clock. It plays the audio stream in
+time with the other players in a group. The connection is always encrypted: there is no
+plaintext session.
+
+The module is a pure Kotlin Multiplatform leaf. It depends on no other Gradle project. It
+contains no Compose code and no Koin code. Each platform difference is an interface that the
+application implements, with one exception. The X25519 backend is an `expect`/`actual`
+declaration, because the Android platform JCA has X25519 only from API 33.
 
 This file documents the module from the outside, as a client of it sees it. Each package
 documents its own rules in KDoc next to the code. The cryptography, the specification mapping,
@@ -23,8 +26,8 @@ The module does this work:
 
 The module does not do this work:
 
-- **No control plane.** Play, pause, seek, and queue commands go over the Music Assistant API in
-  the application. The module sends `player@v1` messages only.
+- **No control plane.** Play, pause, seek, and queue commands go over the control API of the
+  server, in the application. The module sends `player@v1` messages only.
 - **No WebRTC.** For a data-channel connection the application supplies
   `Endpoint.WebRtc(openChannel)`, and the module calls it once per attempt.
 - **No platform audio.** `AudioSink` and `DecoderFactory` are ports.
@@ -71,8 +74,9 @@ and ones that do not.
 | `endpoint` | Yes | Restarts the connection. The audio pipeline is untouched. |
 | `deviceName` | Yes | Restarts the connection. |
 | `codecPreference` | Yes | Restarts the connection. |
+| `bitDepth` | Yes | Restarts the connection. |
+| `bufferSeconds` | Yes | Restarts the connection, because the server reads `buffer_capacity` only from the hello. |
 | `userDelayMs` | No | Applies to the next scheduled chunk. |
-| `bufferCapacityBytes` | No | Applies to the buffer now. Advertised at the next hello. |
 
 Clients should keep the same `Endpoint` instance while the endpoint did not change.
 `Endpoint.WebRtc` compares by identity, so a new instance restarts the connection.
@@ -87,7 +91,7 @@ Clients should keep the same `Endpoint` instance while the endpoint did not chan
 | `SendspinTransport` | Frames over one WebRTC data channel. |
 
 `SendspinDeps` also takes the application's `HttpClient`, an `online` flow, an `approvePairing`
-call, and the audio dispatcher.
+call, the audio dispatcher, the software version, and an optional clock.
 
 A decoder can be a **pass-through**: it returns `outputCodec != PCM`, and the sink decodes the
 bytes itself. iOS works this way. The scheduler then treats the bytes as opaque. It cannot trim,
@@ -95,16 +99,13 @@ pad, or resample them, so it schedules open loop. See the KDoc on `Scheduler`.
 
 ### Authentication and pairing
 
-The module holds no credential of its own. It needs two things from the application, and both
-exist because Music Assistant hosts the Sendspin server.
+The module holds no credential of its own. It can need two things from the application.
 
-**The Music Assistant token is the price of entry to the proxy, not to Sendspin.**
-`Endpoint.WebSocket` carries a token because the default URL is the Music Assistant socket at
-`<server>/sendspin`. Music Assistant puts the Sendspin server behind the same authenticated
-reverse proxy as its control socket, so a client needs one open port and one credential. The
-module sends `auth` and waits for `auth_ok` before the Sendspin protocol starts. This exchange
-is the proxy's, not Sendspin's. A WebRTC data channel skips it, because the channel is already
-proven.
+**`Endpoint.WebSocket` carries a token for an authenticating proxy.** A server can put the
+Sendspin server behind the same authenticated reverse proxy as its control socket. Then a client
+needs one open port and one credential. The module sends `auth` and waits for `auth_ok` before
+the Sendspin protocol starts. This exchange belongs to the proxy, not to Sendspin. A WebRTC data
+channel skips it, because the channel is already proven.
 
 **`approvePairing` pairs the player without a person.** A Sendspin server does not accept an
 unknown player on its own. It shows a pairing code, and a person approves the code. A Sendspin
@@ -116,9 +117,7 @@ it holds no control plane. So it gives the token to the application, and the app
 the token approved. The module asks when a session comes up unpaired. The module asks again
 after a server-side unpair, so the player returns on the next reconnect.
 
-Music Assistant supplies the trusted channel: the application spends the token on the
-`sendspin/pair_web_player` command of its own API connection. An application that pairs by the
-code supplies an `approvePairing` that does nothing.
+An application that pairs by the code supplies an `approvePairing` that does nothing.
 
 ### State and events
 
@@ -170,3 +169,59 @@ the network returns.
 
 A reconnect does not stop the audio. The pipeline outlives the connection, so audio that is
 already buffered keeps playing, and a stream that resumes in the same format is not rebuilt.
+
+## Known limitations
+
+- **No volume or mute commands.** The player sends an empty `supported_commands` list. It
+  ignores each `server/command` message. Control the volume through the control plane of the
+  application.
+- **The WebSocket endpoint always runs the proxy exchange.** Each `Endpoint.WebSocket`
+  connection sends `auth` first. For a server without this proxy, supply your own
+  `SendspinTransport` through `Endpoint.WebRtc(openChannel)`. The module calls `openChannel` and
+  uses the transport that it gets, so the transport does not have to be WebRTC.
+- **Silent pairing is the only pairing route.** If the server waits for a person to approve a
+  pairing code, the server rejects each attempt with `pairing_required`. After 5 rejections in a
+  row, the player goes to `Failed(Unauthorized)`. To try again, set the config to `null` and then
+  set it again.
+- **One stream shape.** The player advertises stereo at 48 kHz only. FLAC and PCM can be 16-bit
+  or 24-bit. Opus is always 16-bit.
+- **No server discovery.** The module does not find servers on the network. The application
+  supplies the endpoint.
+- **Kotlin API only.** The public API uses coroutines, `StateFlow`, and sealed types. The module
+  has no Swift API and no XCFramework. An iOS application calls the module from Kotlin code.
+
+## Logging
+
+The module writes its logs through the global Kermit `Logger`, with one tag for each component.
+It does not take a logger as a dependency. To filter or redirect the logs, configure Kermit in
+the application:
+
+```kotlin
+Logger.setMinSeverity(Severity.Warn)
+Logger.setLogWriters(listOf(myLogWriter))
+```
+
+This configuration also applies to all other Kermit logs of the application.
+
+## Integration with Music Assistant
+
+Music Assistant hosts a Sendspin server. The Music Assistant application uses the module in this
+way:
+
+- **Endpoint.** The default URL is the Music Assistant socket at `<server>/sendspin`. The token
+  in `Endpoint.WebSocket` is the Music Assistant access token. Over Remote Access, the
+  application opens a data channel on its WebRTC peer connection.
+- **Pairing.** `approvePairing` sends the token in the `sendspin/pair_web_player` command over
+  the API connection of the application.
+- **Encryption.** The encrypted protocol needs Music Assistant schema 45 or newer. For a server
+  with a lower schema, the application gives `Endpoint.Unsupported`.
+- **Wire version.** `sendspinWireFor` in the application selects the `WireVersion` from the
+  schema and the server version:
+
+| Music Assistant server | aiosendspin | `WireVersion` |
+| --- | --- | --- |
+| 2.10.6 and older | 9.x | `LEGACY_9` |
+| 2.10.7 and 2.11 | 10.x | `SPEC_1_0` |
+
+An unknown server and a source build get `LEGACY_9`. The handshake does not give the server
+version, so the application reads it from the Music Assistant API.

@@ -27,7 +27,7 @@ internal sealed interface StreamAction {
 /**
  * Pure stream lifecycle decisions.
  *
- * MA sends `stream/clear` plus a same-format `stream/start` on every track
+ * The server sends `stream/clear` plus a same-format `stream/start` on every track
  * change, seek, and restart: a discontinuity, never a gapless boundary. While
  * playing, the same format keeps the sink and decoder (a fresh device stream
  * per skip costs hundreds of ms and the head of the track); a format change
