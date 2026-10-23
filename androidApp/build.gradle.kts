@@ -11,11 +11,11 @@ android {
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "io.music_assistant.client"
+        applicationId = "io.music_assistant.client.trial"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 17
-        versionName = "0.16.0"
+        versionName = "0.16.0-fip.1"
     }
     packaging {
         resources {
