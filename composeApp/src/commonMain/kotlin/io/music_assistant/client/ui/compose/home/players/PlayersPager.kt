@@ -87,6 +87,8 @@ import io.music_assistant.client.data.model.client.PlayerData
 import io.music_assistant.client.data.model.client.PlayerDataFixtures
 import io.music_assistant.client.data.model.client.PlayerDataFixtures.toQueue
 import io.music_assistant.client.data.model.client.PlayerDataFixtures.toQueueTrack
+import io.music_assistant.client.data.model.client.QueueOption
+import io.music_assistant.client.data.play.PlayMode
 import io.music_assistant.client.data.model.client.chapterSeekSeconds
 import io.music_assistant.client.data.model.client.items.AppMediaItem
 import io.music_assistant.client.data.model.client.items.Track
@@ -344,6 +346,13 @@ fun PlayersPager(
                         dialogRequest = PlayerDialogRequest.AddToPlaylist(playerId, it)
                     }
                 }
+                // Targets this page's queue, not the selected player: the pager shows every player.
+                val queueOrPlayerId = player.queueOrPlayerId
+                val onStartEndlessMix: (AppMediaItem) -> Unit = remember(queueOrPlayerId) {
+                    {
+                        homeScreenViewModel.playOnQueue(queueOrPlayerId, it, PlayMode(QueueOption.REPLACE, endlessMix = true))
+                    }
+                }
 
                 val colors by playerColors.getValue(player)
 
@@ -412,6 +421,7 @@ fun PlayersPager(
                                 },
                                 playerAction = playerAction1,
                                 onAddToPlaylist = onAddToPlaylist.takeIf { grantedScopes.canEditLibrary },
+                                onStartEndlessMix = onStartEndlessMix,
                                 onFavoriteChange = actionsViewModel::onFavoriteChange
                                     .takeIf { grantedScopes.canEditLibrary },
                                 onFavoriteStreamClick = {
@@ -514,6 +524,7 @@ private fun ExpandedPlayerPage(
     onAmbientSoundButton: (() -> Unit)?,
     playerAction: (PlayerData, PlayerAction) -> Unit,
     onAddToPlaylist: ((AppMediaItem) -> Unit)? = null,
+    onStartEndlessMix: ((AppMediaItem) -> Unit)? = null,
     // Null hides the heart: the user cannot edit the library.
     onFavoriteChange: ((AppMediaItem, Boolean?) -> Unit)?,
     onFavoriteStreamClick: (PlayerData) -> Unit = {},
@@ -857,6 +868,7 @@ private fun ExpandedPlayerPage(
                 if (!showSideQueue) {
                     CollapsibleQueue(
                         onAddToPlaylist = onAddToPlaylist,
+                        onStartEndlessMix = onStartEndlessMix,
                         modifier = Modifier
                             .conditional(
                                 condition = isQueueExpanded,

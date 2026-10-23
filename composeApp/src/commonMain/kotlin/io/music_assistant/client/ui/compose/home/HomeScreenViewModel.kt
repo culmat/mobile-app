@@ -404,22 +404,24 @@ class HomeScreenViewModel(
     }
 
     fun onPlayClick(item: AppMediaItem, mode: PlayMode) {
-        dataSource.selectedPlayer?.queueOrPlayerId?.let { queueId ->
-            item.mediaUri?.let { mediaUri ->
-                Logger.withTag("PlayDispatch")
-                    .i { "HomeScreenViewModel: uri=$mediaUri mode=$mode queue=$queueId" }
-                playDispatcher.play(
-                    PlayRequest(
-                        queueOrPlayerId = queueId,
-                        media = listOf(mediaUri),
-                        option = mode.option,
-                        endlessMixMode = mode.endlessMix && item !is Genre,
-                        shuffle = mode.shuffle,
-                        startFromBeginning = mode.startFromBeginning,
-                    ),
-                )
-            }
-        }
+        dataSource.selectedPlayer?.queueOrPlayerId?.let { playOnQueue(it, item, mode) }
+    }
+
+    /** Plays [item] on the queue that the caller names, for a surface that shows several players. */
+    fun playOnQueue(queueOrPlayerId: String, item: AppMediaItem, mode: PlayMode) {
+        val mediaUri = item.mediaUri ?: return
+        Logger.withTag("PlayDispatch")
+            .i { "HomeScreenViewModel: uri=$mediaUri mode=$mode queue=$queueOrPlayerId" }
+        playDispatcher.play(
+            PlayRequest(
+                queueOrPlayerId = queueOrPlayerId,
+                media = listOf(mediaUri),
+                option = mode.option,
+                endlessMixMode = mode.endlessMix && item !is Genre,
+                shuffle = mode.shuffle,
+                startFromBeginning = mode.startFromBeginning,
+            ),
+        )
     }
 
     private fun updateRecommendationsIfNeeded(changed: Track, change: MediaItemChange) {
