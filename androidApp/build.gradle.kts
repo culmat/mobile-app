@@ -14,8 +14,8 @@ android {
         applicationId = "io.music_assistant.client.trial"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 18
-        versionName = "0.16.0-fip.2"
+        versionCode = 19
+        versionName = "0.16.0-fip.3"
     }
     packaging {
         resources {
