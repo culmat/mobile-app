@@ -5,6 +5,7 @@ import io.music_assistant.client.data.model.client.MediaType
 import io.music_assistant.client.data.model.client.Player
 import io.music_assistant.client.data.model.client.PlayerMedia
 import io.music_assistant.client.data.model.client.PlayerType
+import io.music_assistant.client.data.model.client.SongTiming
 import io.music_assistant.client.data.model.server.PlayerFeature
 import io.music_assistant.client.data.model.server.PlayerState
 import io.music_assistant.client.data.model.server.ServerPlayer
@@ -68,7 +69,16 @@ class PlayerFactory(
             queueItemId = queueItemId,
             mediaType = clientMediaType,
             uri = uri,
+            songTiming = songTiming(clientMediaType),
         )
+    }
+
+    private fun ServerPlayerMedia.songTiming(clientMediaType: MediaType?): SongTiming? {
+        if (clientMediaType != MediaType.RADIO) return null
+        val songDuration = duration?.takeIf { it > 0 } ?: return null
+        val elapsed = elapsedTime ?: return null
+        val updatedAt = elapsedTimeLastUpdated ?: return null
+        return SongTiming(duration = songDuration, elapsed = elapsed, updatedAt = updatedAt)
     }
 
     private companion object {

@@ -36,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -66,6 +67,7 @@ import io.music_assistant.client.data.model.client.PlayerData
 import io.music_assistant.client.data.model.client.PlayerDataFixtures
 import io.music_assistant.client.data.model.client.QualityTier
 import io.music_assistant.client.data.model.client.ResolvedChapter
+import io.music_assistant.client.data.model.client.SongTiming
 import io.music_assistant.client.data.model.client.items.AppMediaItem
 import io.music_assistant.client.data.model.client.items.Audiobook
 import io.music_assistant.client.data.model.client.items.PodcastEpisode
@@ -85,8 +87,10 @@ import io.music_assistant.client.ui.compose.common.items.artistNavigation
 import io.music_assistant.client.ui.compose.common.painters.rememberPlaceholderPainter
 import io.music_assistant.client.ui.fadingEdges
 import io.music_assistant.client.ui.inactive
+import io.music_assistant.client.utils.currentTimeMillis
 import io.music_assistant.client.utils.formatDuration
 import io.music_assistant.sendspin.api.PlayerState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import musicassistantclient.composeapp.generated.resources.Res
 import musicassistantclient.composeapp.generated.resources.action_go_to_artist
@@ -384,17 +388,26 @@ fun FullPlayerItem(
             ?.let { it to it }
             ?: trackNameAndContentDescription(currentMedia?.title)
 
+        // A radio stream that knows its song times the slider by that song, and cannot seek.
+        val songTiming = currentMedia?.songTiming?.takeIf { !poweredOff }
+        val songPosition = songTiming?.let { rememberSongPosition(it, item.player.isPlaying) }
+
         // Powered off: present the "no media" state — disabled slider, empty time labels.
-        val duration = if (poweredOff) null else currentMedia?.duration?.takeIf { it > 0 }?.toFloat()
+        val duration = if (poweredOff) {
+            null
+        } else {
+            (songTiming?.duration ?: currentMedia?.duration?.takeIf { it > 0 })?.toFloat()
+        }
 
         // Live position from PlayerPositionTracker — single source of truth shared
         // with notification + Android Auto. Recomposition scope is limited to this
         // slider; the marquee/art/controls only recompose on real state changes.
-        val displayPosition = livePositionFlow
+        val queuePosition = livePositionFlow
             ?.collectAsStateWithLifecycle(initialValue = item.queueInfo?.elapsedTime ?: 0.0)
             ?.value?.toFloat()
             ?: item.queueInfo?.elapsedTime?.toFloat()
             ?: 0f
+        val displayPosition = songPosition ?: queuePosition
 
         // Chapter presentation maps the slider/subtitle to the active chapter.
         // Domain positions, seeks, and tracker values remain absolute.
@@ -558,7 +571,7 @@ fun FullPlayerItem(
             Slider(
                 value = sliderPosition,
                 valueRange = timelineDuration?.let { 0f..it } ?: 0f..1f,
-                enabled = displayPosition.takeIf { timelineDuration != null } != null,
+                enabled = timelineDuration != null && songTiming == null,
                 onValueChange = {
                     if (userDragPosition == null) dragChapter = currentChapter
                     userDragPosition = it  // Track drag position locally
@@ -575,7 +588,7 @@ fun FullPlayerItem(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 thumb = {
-                    sliderPosition.takeIf { timelineDuration != null }?.let {
+                    sliderPosition.takeIf { timelineDuration != null && songTiming == null }?.let {
                         SliderDefaults.Thumb(
                             interactionSource = remember { MutableInteractionSource() },
                             thumbSize = DpSize(16.dp, 16.dp),
@@ -891,3 +904,23 @@ private fun AmbientSoundPill(tint: Color, onClick: () -> Unit) {
         )
     }
 }
+
+/**
+ * Seconds into the radio song [timing] describes, moving on while [playing] and holding where it
+ * is while paused.
+ */
+@Composable
+private fun rememberSongPosition(timing: SongTiming, playing: Boolean): Float {
+    val position by produceState(timing.positionAt(nowSec()).toFloat(), timing, playing) {
+        value = timing.positionAt(nowSec()).toFloat()
+        while (playing) {
+            delay(SONG_POSITION_TICK_MS)
+            value = timing.positionAt(nowSec()).toFloat()
+        }
+    }
+    return position
+}
+
+private const val SONG_POSITION_TICK_MS = 500L
+
+private fun nowSec(): Double = currentTimeMillis() / 1000.0
