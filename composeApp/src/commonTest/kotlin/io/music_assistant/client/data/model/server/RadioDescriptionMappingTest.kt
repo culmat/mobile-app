@@ -34,6 +34,13 @@ class RadioDescriptionMappingTest {
     }
 
     @Test
+    fun `only the first line of a longer description is the subtitle`() {
+        val station = radio(description = "Molly — Jungle\\n\\nFIP Groove plays funk and soul")
+
+        assertEquals("Molly — Jungle", station.subtitle)
+    }
+
+    @Test
     fun `a station without a description has no subtitle of its own`() {
         assertNull(radio(description = null).subtitle)
         assertNull(radio(description = " ").subtitle)
