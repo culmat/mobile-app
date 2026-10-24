@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import io.music_assistant.client.data.model.client.MediaType
 import io.music_assistant.client.data.model.client.Player
 import io.music_assistant.client.data.model.client.PlayerData
 import io.music_assistant.client.data.model.client.PlayerDataFixtures
@@ -395,6 +396,8 @@ fun FullPlayerItem(
         val timelineDuration = currentChapter?.duration?.toFloat() ?: duration
         val timelinePosition =
             currentChapter?.relativeSec(displayPosition.toDouble())?.toFloat() ?: displayPosition
+        // A radio stream cannot seek, not even in a song whose length it reports.
+        val seekable = timelineDuration != null && currentMedia?.mediaType != MediaType.RADIO
 
         val titleTrack = (item.queueInfo?.currentItem?.track as? Track)?.takeIf { !poweredOff }
         // The title does the overflow's "Go to track".
@@ -547,7 +550,7 @@ fun FullPlayerItem(
             Slider(
                 value = sliderPosition,
                 valueRange = timelineDuration?.let { 0f..it } ?: 0f..1f,
-                enabled = displayPosition.takeIf { timelineDuration != null } != null,
+                enabled = seekable,
                 onValueChange = {
                     if (userDragPosition == null) dragChapter = currentChapter
                     userDragPosition = it  // Track drag position locally
@@ -564,7 +567,7 @@ fun FullPlayerItem(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 thumb = {
-                    sliderPosition.takeIf { timelineDuration != null }?.let {
+                    sliderPosition.takeIf { seekable }?.let {
                         SliderDefaults.Thumb(
                             interactionSource = remember { MutableInteractionSource() },
                             thumbSize = DpSize(16.dp, 16.dp),

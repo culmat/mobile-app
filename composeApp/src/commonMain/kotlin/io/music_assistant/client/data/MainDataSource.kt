@@ -18,6 +18,7 @@ import io.music_assistant.client.data.model.client.Player
 import io.music_assistant.client.data.model.client.PlayerData
 import io.music_assistant.client.data.model.client.Queue
 import io.music_assistant.client.data.model.client.QueueInfo
+import io.music_assistant.client.data.model.client.SongTiming
 import io.music_assistant.client.data.model.client.byId
 import io.music_assistant.client.data.model.client.isBefore
 import io.music_assistant.client.data.model.client.items.AppMediaItem
@@ -103,6 +104,19 @@ internal fun List<PlayerData>.withPlayRequestsPending(
     val busy = localBusyQueueIds + serverQueues.filter { it.playActionInProgress }.map { it.id }
     return map { it.copy(playRequestPending = it.queueOrPlayerId in busy) }
 }
+
+/**
+ * The song each queue's radio stream reports, or null; see [PlayerPositionTracker.setSong].
+ * Media stamped for another queue item is not that queue's stream.
+ */
+internal fun radioSongTimings(players: List<Player>, queues: List<QueueInfo>): Map<String, SongTiming?> =
+    queues.associate { queue ->
+        queue.id to players
+            .filter { it.queueId == queue.id }
+            .firstNotNullOfOrNull { player ->
+                player.currentMedia?.takeIf { it.queueItemId == queue.currentItem?.id }?.songTiming
+            }
+    }
 
 /** Preserve newer event/optimistic state when a delayed full snapshot arrives. */
 internal fun mergeFullQueueSnapshot(
@@ -428,6 +442,9 @@ class MainDataSource(
             }
                 .debounce(Timings.EVENT_DEBOUNCE) // Small debounce to batch rapid updates, but don't delay initial load
                 .collect { input ->
+                    // Before the players publish, so every reader of a new song also reads its position.
+                    input.players.dataOrNull?.let { radioSongTimings(it, input.queues) }
+                        ?.forEach { (queueId, timing) -> positionTracker.setSong(queueId, timing) }
                     _playersData.update { oldValues ->
                         fun build(serverPlayers: List<Player>) = DataState.Data(
                             buildPlayerDataList(
