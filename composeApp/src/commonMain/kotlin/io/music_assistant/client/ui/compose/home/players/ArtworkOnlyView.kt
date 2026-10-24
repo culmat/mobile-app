@@ -51,7 +51,9 @@ import kotlin.math.cos
 private const val COVER_FRACTION = 0.9f
 private val CoverShape = RoundedCornerShape(16.dp)
 private const val CROSSFADE_MS = 800
-private val BackdropBlur = 32.dp
+// As blurred as the web player's backdrop: CSS blur(56px) is a standard deviation, while a
+// Compose blur radius is about 1.7 standard deviations.
+private val BackdropBlur = 96.dp
 
 // Livelier and darker than the cover, so the cover stands out from its own colors.
 private val BackdropColorFilter = ColorFilter.colorMatrix(
