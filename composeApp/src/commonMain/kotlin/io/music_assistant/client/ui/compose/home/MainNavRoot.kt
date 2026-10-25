@@ -52,6 +52,7 @@ import io.music_assistant.client.api.DeepLinkDestination
 import io.music_assistant.client.api.ErrorMessageBus
 import io.music_assistant.client.data.model.client.ClickContext
 import io.music_assistant.client.data.model.client.MediaType
+import io.music_assistant.client.data.model.client.byId
 import io.music_assistant.client.data.model.client.items.Album
 import io.music_assistant.client.data.model.client.items.Artist
 import io.music_assistant.client.data.model.client.items.Audiobook
@@ -75,6 +76,7 @@ import io.music_assistant.client.ui.compose.common.ToastHost
 import io.music_assistant.client.ui.compose.common.providers.providerIconFetcher
 import io.music_assistant.client.ui.compose.common.rememberToastState
 import io.music_assistant.client.ui.compose.common.viewmodel.ActionsViewModel
+import io.music_assistant.client.ui.compose.home.players.ArtworkOnlyView
 import io.music_assistant.client.ui.compose.home.players.DspSettingsViewModel
 import io.music_assistant.client.ui.compose.home.players.PlayersPager
 import io.music_assistant.client.ui.compose.home.players.QueueDjViewModel
@@ -187,6 +189,11 @@ fun MainNavigationRoot(
     }
 
     var playerExpanded by remember { mutableStateOf(false) }
+    // The player whose cover shows alone, over the expanded player.
+    var artworkOnlyPlayerId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(playerExpanded) {
+        if (!playerExpanded) artworkOnlyPlayerId = null
+    }
 
     val onExpandPlayer = remember { { expanded: Boolean -> playerExpanded = expanded } }
 
@@ -376,6 +383,7 @@ fun MainNavigationRoot(
                                         onClose = { playerExpanded = false },
                                         contentPadding = contentPadding,
                                         toastState = toastState,
+                                        onShowArtwork = { artworkOnlyPlayerId = it },
                                         navigateToItem = { item ->
                                             multiBackStack.add(
                                                 MainNav.ItemDetails(
@@ -435,6 +443,9 @@ fun MainNavigationRoot(
                 }
             },
         )
+        artworkOnlyPlayerId
+            ?.let { id -> (playersState as? HomeScreenViewModel.PlayersState.Data)?.playerData?.byId(id) }
+            ?.let { ArtworkOnlyView(player = it, onDismiss = { artworkOnlyPlayerId = null }) }
         ToastHost(toastState = toastState)
     }
 }
