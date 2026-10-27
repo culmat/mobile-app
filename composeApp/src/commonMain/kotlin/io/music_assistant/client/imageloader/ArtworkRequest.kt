@@ -45,15 +45,6 @@ fun rememberArtworkRequest(url: String?): ImageRequest? {
 }
 
 /**
- * Artwork filling most of the screen on its own, decoded large enough to stay sharp there. Not
- * shared with color extraction: draw it over [rememberArtworkRequest], whose smaller decode is
- * usually in memory already, so the cover shows at once and sharpens when this one is ready.
- */
-@Composable
-fun rememberLargeArtworkRequest(url: String?): ImageRequest? =
-    rememberSizedArtworkRequest(url, LARGE_ARTWORK_DECODE_SIZE)
-
-/**
  * Artwork for a backdrop that is drawn blurred. A tiny decode is soft on its own once scaled
  * up, which also stands in for the blur where the platform has none.
  */
@@ -61,7 +52,6 @@ fun rememberLargeArtworkRequest(url: String?): ImageRequest? =
 fun rememberBackdropArtworkRequest(url: String?): ImageRequest? =
     rememberSizedArtworkRequest(url, BACKDROP_ARTWORK_DECODE_SIZE)
 
-private const val LARGE_ARTWORK_DECODE_SIZE = 1280
 private const val BACKDROP_ARTWORK_DECODE_SIZE = 48
 
 @Composable

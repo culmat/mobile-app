@@ -191,9 +191,6 @@ fun MainNavigationRoot(
     var playerExpanded by remember { mutableStateOf(false) }
     // The player whose cover shows alone, over the expanded player.
     var artworkOnlyPlayerId by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(playerExpanded) {
-        if (!playerExpanded) artworkOnlyPlayerId = null
-    }
 
     val onExpandPlayer = remember { { expanded: Boolean -> playerExpanded = expanded } }
 
@@ -443,9 +440,16 @@ fun MainNavigationRoot(
                 }
             },
         )
-        artworkOnlyPlayerId
-            ?.let { id -> (playersState as? HomeScreenViewModel.PlayersState.Data)?.playerData?.byId(id) }
-            ?.let { ArtworkOnlyView(player = it, onDismiss = { artworkOnlyPlayerId = null }) }
+        artworkOnlyPlayerId?.let { id ->
+            val player = (playersState as? HomeScreenViewModel.PlayersState.Data)?.playerData?.byId(id)
+            // A player that goes away takes its cover along, so the cover does not come back unasked
+            // when the player returns.
+            if (player != null) {
+                ArtworkOnlyView(player = player, onDismiss = { artworkOnlyPlayerId = null })
+            } else {
+                LaunchedEffect(id) { artworkOnlyPlayerId = null }
+            }
+        }
         ToastHost(toastState = toastState)
     }
 }

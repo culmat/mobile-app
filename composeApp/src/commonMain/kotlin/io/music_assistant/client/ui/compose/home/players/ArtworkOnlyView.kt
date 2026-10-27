@@ -36,7 +36,6 @@ import coil3.compose.AsyncImage
 import io.music_assistant.client.data.model.client.PlayerData
 import io.music_assistant.client.imageloader.rememberArtworkRequest
 import io.music_assistant.client.imageloader.rememberBackdropArtworkRequest
-import io.music_assistant.client.imageloader.rememberLargeArtworkRequest
 import io.music_assistant.client.nav.BackHandler
 import io.music_assistant.client.ui.compose.common.icons.AlbumIcon
 import io.music_assistant.client.utils.KeepScreenOn
@@ -139,12 +138,6 @@ fun ArtworkOnlyView(
                     url?.let {
                         AsyncImage(
                             model = rememberArtworkRequest(it),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize(),
-                        )
-                        AsyncImage(
-                            model = rememberLargeArtworkRequest(it),
                             contentDescription = media?.title,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
