@@ -1,10 +1,6 @@
 package io.music_assistant.client.ui.compose.home.players
 
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.graphics.Color
@@ -25,13 +21,11 @@ import musicassistantclient.composeapp.generated.resources.Res
 import musicassistantclient.composeapp.generated.resources.action_show_artwork_only
 import musicassistantclient.composeapp.generated.resources.action_show_player_controls
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** The cover of the full player shown alone: how it opens, how it closes, and the screen. */
+/** The cover of the full player shown alone: how it opens and how it closes. */
 @RunWith(AndroidJUnit4::class)
 class ArtworkOnlyViewTest {
     // No animations, as the system setting can ask: the backdrop of a playing player then holds
@@ -79,32 +73,15 @@ class ArtworkOnlyViewTest {
         assertEquals(1, dismissals)
     }
 
-    @Test
-    fun `the screen stays on while the music plays, and only then`() {
-        var playing by mutableStateOf(true)
-        composeTestRule.setContent {
-            ArtworkOnlyView(player = player(imageUrl = IMAGE_URL, playing = playing), onDismiss = {})
-        }
-        composeTestRule.runOnIdle { assertTrue(keepsScreenOn()) }
-
-        playing = false
-
-        composeTestRule.runOnIdle { assertFalse(keepsScreenOn()) }
-    }
-
-    private fun keepsScreenOn(): Boolean =
-        composeTestRule.activity.window.attributes.flags and
-            WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON != 0
-
     private fun hasClickLabel(label: String) = SemanticsMatcher("click label is \"$label\"") {
         it.config.getOrNull(SemanticsActions.OnClick)?.label == label
     }
 
-    private fun player(imageUrl: String?, playing: Boolean = true): PlayerData {
+    private fun player(imageUrl: String?): PlayerData {
         val data = PlayerDataFixtures.playerData()
         return data.copy(
             player = data.player.copy(
-                isPlaying = playing,
+                isPlaying = true,
                 currentMedia = PlayerMedia(
                     title = TITLE,
                     artist = "Jungle",

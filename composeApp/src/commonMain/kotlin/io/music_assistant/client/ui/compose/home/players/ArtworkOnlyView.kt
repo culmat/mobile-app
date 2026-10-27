@@ -38,7 +38,6 @@ import io.music_assistant.client.imageloader.rememberArtworkRequest
 import io.music_assistant.client.imageloader.rememberBackdropArtworkRequest
 import io.music_assistant.client.nav.BackHandler
 import io.music_assistant.client.ui.compose.common.icons.AlbumIcon
-import io.music_assistant.client.utils.KeepScreenOn
 import io.music_assistant.client.utils.SystemBarsHidden
 import kotlinx.coroutines.delay
 import musicassistantclient.composeapp.generated.resources.Res
@@ -75,8 +74,8 @@ private const val BREATH_SCRIM_THINNING = 0.2f
  * The cover of what [player] plays, alone on the screen: large, over a blurred and darkened copy
  * of itself. A tap anywhere or back leaves it, and the cover cross-fades when the music changes.
  *
- * It is there to be looked at, so the system bars hide and, while the music plays, the screen
- * stays on and the backdrop slowly breathes. Paused, the backdrop holds still.
+ * It is there to be looked at, so the system bars hide and, while the music plays, the backdrop
+ * slowly breathes. Paused, it holds still.
  */
 @Composable
 fun ArtworkOnlyView(
@@ -87,7 +86,6 @@ fun ArtworkOnlyView(
     val media = player.player.currentMedia
     val isPlaying = player.player.isPlaying
     BackHandler(onBack = onDismiss)
-    KeepScreenOn(enabled = isPlaying)
     SystemBarsHidden()
     val breath = rememberBreath(isPlaying)
 
